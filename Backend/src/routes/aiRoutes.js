@@ -1,11 +1,11 @@
-const express = require("express");
+  const express = require("express");
 
-const {
-  chatWithFWCAI,
-} = require("../controllers/aiController");
+  const {
+    chatWithFWCAI,
+  } = require("../controllers/aiController");
 
-const router = express.Router();
+  const router = express.Router();
 
-router.post("/", chatWithFWCAI);
+  router.post("/", chatWithFWCAI);
 
-module.exports = router;
+  module.exports = router;

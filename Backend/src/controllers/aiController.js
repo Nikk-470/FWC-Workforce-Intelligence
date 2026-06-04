@@ -1,34 +1,67 @@
+const Candidate =
+  require("../models/Candidate");
+
+const {
+  recruiterAIChat,
+} = require("../services/aiService");
+
 const chatWithFWCAI = async (req, res) => {
-    const { message } = req.body;
-  
+
+  try {
+
+    const {
+      message,
+      role,
+    } = req.body;
+
     let reply = "";
-  
-    if (
-      message.toLowerCase().includes("attendance")
-    ) {
+
+    if (role === "recruiter") {
+
+      const candidates =
+        await Candidate.find();
+
       reply =
-        "Current attendance rate is 98.4%.";
-    } else if (
-      message.toLowerCase().includes("employee")
-    ) {
+        await recruiterAIChat(
+          message,
+          candidates
+        );
+
+    }
+
+    else if (role === "admin") {
+
       reply =
-        "Total employees: 5247.";
-    } else if (
-      message.toLowerCase().includes("report")
-    ) {
-      reply =
-        "Workforce report generated successfully.";
-    } else {
+        await recruiterAIChat(
+          message,
+          []
+        );
+    
+    }
+
+    else {
+
       reply =
         "FWCAI received your request.";
+
     }
-  
+
     res.status(200).json({
       success: true,
       reply,
     });
-  };
-  
-  module.exports = {
-    chatWithFWCAI,
-  };
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+
+};
+
+module.exports = {
+  chatWithFWCAI,
+};

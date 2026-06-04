@@ -23,6 +23,19 @@ export default function FWCAIWidget() {
       "12 employees have been identified as potential attrition risks.",
   };
   
+  const recruiterActions = {
+    "Show Shortlisted Candidates":
+      "Show shortlisted candidates",
+  
+    "Top Scoring Candidates":
+      "Show candidates with highest scores",
+  
+    "React Developers":
+      "Show candidates with React skills",
+  
+    "Hiring Summary":
+      "Give hiring summary",
+  };
 
   const [messages, setMessages] = useState([
     {
@@ -30,6 +43,34 @@ export default function FWCAIWidget() {
       text: "Hello Nikhil 👋 How can I help you today?",
     },
   ]);
+
+  const getRole = () => {
+
+    const path =
+      window.location.pathname;
+  
+    if (
+      path.includes("/admin")
+    )
+      return "admin";
+  
+    if (
+      path.includes("/recruiter")
+    )
+      return "recruiter";
+  
+    if (
+      path.includes("/employee")
+    )
+      return "employee";
+  
+    if (
+      path.includes("/seniormanager")
+    )
+      return "seniorManager";
+  
+    return "admin";
+  };
 
   const handleSendMessage = async () => {
 
@@ -52,6 +93,7 @@ export default function FWCAIWidget() {
       const response = await axios.post(
         "http://localhost:5000/api/fwcai",
         {
+          role: getRole(),
           message: userMessage,
         }
       );
@@ -75,6 +117,34 @@ export default function FWCAIWidget() {
       ]);
   
     }
+  
+  };
+  const handleSuggestion = (question, answer) => {
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: "user",
+        text: question,
+      },
+      {
+        sender: "ai",
+        text: answer,
+      },
+    ]);
+  
+    setRecentSearches((prev) => {
+  
+      const updated = [
+        question,
+        ...prev.filter(
+          (item) => item !== question
+        ),
+      ];
+  
+      return updated.slice(0, 3);
+  
+    });
   
   };
 

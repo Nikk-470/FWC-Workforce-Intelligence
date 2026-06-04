@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Vite cache & production builds
+.vite/
+.cache/
+
+# Coverage directory used by testing tools (if any)
+coverage/

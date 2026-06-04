@@ -1,11 +1,14 @@
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 export default function PortalCard({
   title,
   description,
   icon,
+  route,
 }) {
+  const navigate = useNavigate();
   return (
     <motion.div
       whileHover={{
@@ -45,9 +48,12 @@ export default function PortalCard({
             {description}
           </p>
 
-          <button className="mt-6 bg-indigo-600 text-white px-6 py-3 rounded-xl hover:bg-indigo-700 transition">
-            Enter Workspace →
-          </button>
+          <button
+  onClick={() => navigate(route)}
+  className="mt-6 bg-indigo-600 text-white px-6 py-3 rounded-xl hover:bg-indigo-700 transition"
+>
+  Enter Workspace →
+</button>
 
         </CardContent>
       </Card>
