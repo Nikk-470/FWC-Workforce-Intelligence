@@ -1,26 +1,42 @@
-import PortalCard from "@/components/landing/PortalCard";
-import recruiterimg from "@/assets/recruiterimg.png";
-import employee from "@/assets/employee.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // 🚀 To handle workspace redirection
-
+import { useNavigate, Link } from "react-router-dom";
 import {
   ShieldCheck,
   BarChart3,
+  UserCheck,
+  Briefcase,
+  ArrowRight,
+  Lock,
+  Mail,
+  CheckCircle2,
+  Globe,
+  Bot,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 export default function LandingPage() {
-  // 🔑 Multi-Role Modal & Auth States
-  const [activeRoleModal, setActiveRoleModal] = useState(null); // Stores "Admin", "Senior Manager", etc.
+  const [activeRole, setActiveRole] = useState("Recruiter"); 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Carousel slider state management
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [timeGreeting, setTimeGreeting] = useState("GOOD DAY");
+
   const navigate = useNavigate();
 
-  // 📝 Secure Authentication Handler
+  // Dynamic time check for Page 1 greeting string
+  useEffect(() => {
+    const hours = new Date().getHours();
+    if (hours < 12) setTimeGreeting("GOOD MORNING SIR/MAM");
+    else if (hours < 17) setTimeGreeting("GOOD AFTERNOON SIR/MAM");
+    else setTimeGreeting("GOOD EVENING SIR/MAM");
+  }, []);
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -32,226 +48,320 @@ export default function LandingPage() {
         password,
       });
 
-      const { token, role, name } = response.data;
+      const token = response.data.token;
+      const userObj = response.data.user || {};
+      const role = userObj.role || response.data.role || "";
+      const name = userObj.name || response.data.name || "";
 
-      // 🔒 Security Check: Make sure their role matches the workspace card they selected!
-      if (role !== activeRoleModal) {
-        setError(`Access Denied: Your profile does not have ${activeRoleModal} permissions.`);
-        setLoading(false);
-        return;
+      if (!token) {
+        throw new Error("No authentication token was returned from server environment.");
       }
 
-      // Save user session credentials locally
+      const databaseRole = role.toLowerCase().trim();
+      const selectedWorkspace = activeRole.toLowerCase().trim();
+
+      if (databaseRole !== selectedWorkspace) {
+        if (
+          (selectedWorkspace === "senior manager" && databaseRole === "manager") ||
+          (selectedWorkspace === "senior manager" && databaseRole === "senior manager")
+        ) {
+          // Pass-through
+        } else {
+          setError(`Access Denied: Your profile does not have ${activeRole} permissions.`);
+          setLoading(false);
+          return;
+        }
+      }
+
       localStorage.setItem("fwc_token", token);
       localStorage.setItem("fwc_user_role", role);
       localStorage.setItem("fwc_user_name", name);
 
-      // Reset modal inputs
-      setActiveRoleModal(null);
       setEmail("");
       setPassword("");
 
-      // 🚀 Redirect to the corresponding dashboard workspace
-      if (role === "Admin") navigate("/admin");
-      else if (role === "Senior Manager") navigate("/manager");
-      else if (role === "Recruiter") navigate("/recruiter");
-      else if (role === "Employee") navigate("/employee");
+      if (databaseRole === "admin") navigate("/admin");
+      else if (databaseRole === "senior manager" || databaseRole === "manager") navigate("/manager");
+      else if (databaseRole === "recruiter") navigate("/recruiter");
+      else if (databaseRole === "employee") navigate("/employee");
 
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid email or password. Please try again.");
+      console.error("Login error:", err);
+      setError(err.response?.data?.message || "Invalid email or password.");
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="relative min-h-screen bg-slate-50 overflow-hidden">
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-300/20 rounded-full blur-3xl"></div>
+  const rolesConfig = [
+    { id: "Admin", label: "Admin", icon: <ShieldCheck size={18} /> },
+    { id: "Senior Manager", label: "Manager", icon: <BarChart3 size={18} /> },
+    { id: "Recruiter", label: "Recruiter", icon: <Briefcase size={18} /> },
+    { id: "Employee", label: "Employee", icon: <UserCheck size={18} /> }
+  ];
 
-      {/* Navbar */}
-      <nav className="border-b bg-white">
-        <div className="w-full px-2 sm:px-8 py-4 flex justify-between items-center">
-          <div className="pl-0 sm:pl-4 lg:pl-8">
-            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold">
-              FWC Workforce Intelligence
+  // Slides database logic array
+  const slidesContent = [
+    {
+      title: timeGreeting,
+      description: "I hope you have an absolutely productive and great day ahead inside our control module."
+    },
+    {
+      title: "THOUGHT OF THE DAY",
+      description: "The best way to predict the future is to orchestrate and write code to create it line by line."
+    },
+    {
+      title: "LAME CODE JOKE",
+      description: "Why do programmers wear glasses? Because they can't C# (see sharp) in the microenvironments!"
+    },
+    {
+      title: "JOIN OUR FAMILY",
+      description: "Tap the 'Explore Careers' button on the top right corner to apply for FWC jobs right away!"
+    }
+  ];
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev === slidesContent.length - 1 ? 0 : prev + 1));
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev === 0 ? slidesContent.length - 1 : prev - 1));
+  };
+
+  return (
+    <div className="relative min-h-screen bg-slate-50 text-slate-800 font-sans antialiased flex flex-col justify-between overflow-x-hidden">
+      
+      {/* Dynamic Embedded Diagonal Floating Keyframe CSS Styles injected in DOM */}
+      <style>{`
+        @keyframes diagonalFloat {
+          0% { transform: translate(0px, 0px); }
+          50% { transform: translate(8px, -15px); }
+          100% { transform: translate(0px, 0px); }
+        }
+        .animate-diagonal-float {
+          animation: diagonalFloat 6s ease-in-out infinite;
+        }
+      `}</style>
+
+      {/* Background blueprint elements */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-60 pointer-events-none z-0"></div>
+      <div className="absolute top-0 right-0 w-[700px] h-[700px] bg-gradient-to-b from-indigo-100/40 to-sky-100/20 rounded-full blur-[140px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-20 left-10 w-[600px] h-[600px] bg-indigo-100/30 rounded-full blur-[120px] pointer-events-none z-0"></div>
+
+      {/* 🧭 Top Navbar */}
+      <nav className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur-md">
+        <div className="w-[95%] mx-auto py-5 flex justify-between items-center">
+          
+          <div className="flex-shrink-0">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 select-none">
+              FWC Workforce
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500">
-              AI-Powered Workforce Platform
-            </p>
           </div>
-          <div className="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full text-sm font-semibold">
-            AI Enabled
+
+          <div className="relative flex-shrink-0">
+            <span className="absolute -inset-1 rounded-xl bg-indigo-500/20 blur-md animate-pulse"></span>
+            <Link 
+              to="/careers" 
+              className="group relative flex items-center gap-3 px-9 py-4 bg-indigo-600 hover:bg-indigo-700 text-white text-base font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition-all duration-300 transform hover:scale-[1.03] hover:px-10"
+            >
+              <Briefcase size={18} className="text-indigo-200 group-hover:text-white transition-colors" />
+              <span>Explore Careers</span>
+              <ArrowRight size={18} className="opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+              
+              <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-300 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-200"></span>
+              </span>
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-
-        {/* Welcome Section */}
-        <div className="text-center mb-10 sm:mb-12">
-          <h2 className="text-4xl sm:text-5xl font-bold tracking-tight">
-            Welcome to FWC Workforce Intelligence
-          </h2>
-          <p className="text-slate-500 mt-3 text-base sm:text-lg max-w-3xl mx-auto">
-            Unified platform for workforce management, recruitment, analytics and employee engagement.
-          </p>
-        </div>
-
-        {/* Portal Cards */}
-        {/* 🔄 CHANGED HERE: Removed 'route' and attached a dynamic onClick trigger to intercept access */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div onClick={() => setActiveRoleModal("Admin")} className="cursor-pointer">
-            <PortalCard
-              icon={<ShieldCheck size={70} className="text-blue-600" />}
-              title="Admin"
-              description="Manage organization, analytics and workforce operations."
-            />
+      {/* ⚡ Split-Screen Main Segment */}
+      <main className="w-[95%] mx-auto py-12 lg:py-20 flex flex-col lg:flex-row items-stretch justify-between gap-12 lg:gap-4 flex-grow relative z-10">
+        
+        {/* Column 1: Typography Statements */}
+        <div className="w-full lg:w-[38%] flex flex-col justify-center space-y-8 text-left">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full text-xs font-bold text-indigo-600 tracking-wide uppercase">
+              Platform Gateway
+            </div>
+            <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-900 leading-[1.12]">
+              Orchestrate Your <br/>Workforce Ecosystem.
+            </h2>
+            <p className="text-slate-500 text-base sm:text-lg font-normal leading-relaxed max-w-xl">
+              A unified corporate core designed to manage multi-tiered application frameworks, custom operational lifecycles, and direct secure system administration roles seamlessly.
+            </p>
           </div>
 
-          <div onClick={() => setActiveRoleModal("Senior Manager")} className="cursor-pointer">
-            <PortalCard
-              icon={<BarChart3 size={70} className="text-purple-600" />}
-              title="Senior Manager"
-              description="Track team performance and department insights."
-            />
-          </div>
-
-          <div onClick={() => setActiveRoleModal("Recruiter")} className="cursor-pointer">
-            <PortalCard
-              icon={
-                <img
-                  src={recruiterimg}
-                  alt="Recruiter"
-                  className="w-24 h-24 object-contain"
-                />
-              }
-              title="Recruiter"
-              description="Screen resumes and conduct AI interviews."
-            />
-          </div>
-
-          <div onClick={() => setActiveRoleModal("Employee")} className="cursor-pointer">
-            <PortalCard
-              icon={
-                <img
-                  src={employee}
-                  alt="Employee"
-                  className="w-24 h-24 object-contain"
-                />
-              }
-              title="Employee"
-              description="Attendance, payroll and performance tracking."
-            />
+          <div className="border-t border-slate-200 pt-8 grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-xl">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm tracking-tight">
+                <CheckCircle2 size={16} />
+                <span>Enterprise Security</span>
+              </div>
+              <p className="text-xs text-slate-400 leading-normal">
+                Layered permission architecture matching exact internal active directory roles securely.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm tracking-tight">
+                <Globe size={16} />
+                <span>Global Infrastructure</span>
+              </div>
+              <p className="text-xs text-slate-400 leading-normal">
+                Synchronized operations coordinating talent pipelines across multi-regional divisions.
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* System Overview */}
-        <div className="mt-16">
-          <div className="mb-8 bg-white rounded-3xl p-5 shadow-lg border border-slate-100">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-              <div>
-                <h3 className="font-bold text-lg">HERA AI Status</h3>
-                <p className="text-slate-500 text-sm">
-                  Resume Screening • Voice Analysis • Workforce Insights
+        {/* 🤖 Column 2: New Diagonal Floating FWCAI Robot & Swipeable Component */}
+        <div className="hidden xl:flex w-[25%] flex-col justify-center items-center relative px-2">
+          <div className="w-full aspect-[4/5] bg-white rounded-3xl p-6 border border-slate-200/90 flex flex-col justify-between shadow-lg animate-diagonal-float relative overflow-hidden group">
+            
+            {/* Top Frame: Purple Robot Header Section */}
+            <div className="w-full">
+              <div className="flex items-center gap-3 pb-4 border-b border-indigo-100">
+                <div className="p-2.5 bg-purple-100 text-purple-600 rounded-2xl shadow-sm border border-purple-200">
+                  <Bot size={24} className="animate-bounce" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-slate-900 tracking-tight leading-none">FWCAI</h4>
+                  <span className="text-[10px] text-purple-500 font-bold tracking-widest uppercase mt-1 block">Autonomous Core</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle Swipeable Content Container Element */}
+            <div className="flex-grow flex flex-col justify-center relative py-4 select-none">
+              <div className="text-center px-2 space-y-3 transition-all duration-300 transform">
+                <h5 className="text-[11px] font-extrabold tracking-widest text-indigo-600 uppercase bg-indigo-50 px-2 py-1 inline-block rounded-md">
+                  {slidesContent[currentSlide].title}
+                </h5>
+                <p className="text-sm font-semibold text-slate-700 leading-relaxed antialiased">
+                  "{slidesContent[currentSlide].description}"
                 </p>
               </div>
-              <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full font-semibold">
-                Active
-              </span>
             </div>
+
+            {/* Bottom Slider Control Pagination Bars */}
+            <div className="w-full pt-4 border-t border-slate-100 flex items-center justify-between">
+              <button 
+                onClick={prevSlide} 
+                className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
+                aria-label="Previous card view"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              
+              {/* Pagination Indicators track dots */}
+              <div className="flex items-center gap-1.5">
+                {slidesContent.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      currentSlide === idx ? "w-5 bg-indigo-600" : "w-1.5 bg-slate-200"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <button 
+                onClick={nextSlide} 
+                className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
+                aria-label="Next card view"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
           </div>
+        </div>
 
-          <h3 className="text-2xl font-bold mb-6">System Overview</h3>
+        {/* Column 3: Significantly Enlarged Verification Panel Card */}
+        <div className="w-full lg:w-[48%] xl:w-[34%] flex flex-col justify-center items-end">
+          <div className="bg-white w-full lg:w-[540px] rounded-3xl p-10 sm:p-12 shadow-xl shadow-slate-200/80 border border-slate-200/70 transition-all">
+            
+            <div className="mb-8 text-left">
+              <h3 className="text-2xl font-extrabold text-slate-900 tracking-tight">Workspace Authorization</h3>
+              <p className="text-sm text-slate-400 mt-1.5">Select your operational tier and provide authentication tokens.</p>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-3xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300">
-              <p className="text-slate-500">Employees</p>
-              <h2 className="text-3xl font-bold">5,247</h2>
+            <div className="grid grid-cols-4 gap-2 bg-slate-100 p-1.5 rounded-xl mb-8">
+              {rolesConfig.map((role) => (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => { setActiveRole(role.id); setError(""); }}
+                  className={`flex flex-col sm:flex-row items-center justify-center gap-2 py-3.5 px-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeRole === role.id
+                      ? "bg-slate-900 text-white shadow-md font-extrabold scale-[1.02]"
+                      : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
+                  }`}
+                >
+                  <span className={activeRole === role.id ? "text-indigo-400" : "text-current"}>
+                    {role.icon}
+                  </span>
+                  <span className="text-[11px] sm:text-xs tracking-tight">{role.label}</span>
+                </button>
+              ))}
             </div>
-            <div className="bg-white rounded-3xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300">
-              <p className="text-slate-500">Attendance</p>
-              <h2 className="text-3xl font-bold">98.4%</h2>
-            </div>
-            <div className="bg-white rounded-3xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300">
-              <p className="text-slate-500">Open Positions</p>
-              <h2 className="text-3xl font-bold">324</h2>
-            </div>
-            <div className="bg-white rounded-3xl p-6 shadow-lg border border-slate-100 hover:shadow-xl transition-all duration-300">
-              <p className="text-slate-500">AI Screening</p>
-              <h2 className="text-3xl font-bold text-green-600">Active</h2>
-            </div>
+
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-medium">
+                ⚠️ {error}
+              </div>
+            )}
+
+            <form onSubmit={handleLoginSubmit} className="space-y-6">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Corporate Email</label>
+                <div className="relative">
+                  <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="name@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-slate-50 focus:bg-white border border-slate-200 focus:border-indigo-500 outline-none text-slate-800 rounded-xl pl-11 pr-4 py-4 text-sm transition-all shadow-inner placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Password</label>
+                <div className="relative">
+                  <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-slate-50 focus:bg-white border border-slate-200 focus:border-indigo-500 outline-none text-slate-800 rounded-xl pl-11 pr-4 py-4 text-sm transition-all shadow-inner placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-base font-bold py-4.5 rounded-xl transition-all shadow-md shadow-indigo-600/10 flex justify-center items-center gap-2"
+              >
+                {loading ? "Verifying Profile..." : `Access ${activeRole} Suite`}
+              </button>
+            </form>
+
           </div>
         </div>
+      </main>
 
-      </div>
-
-      {/* 📥 ATTACHED OVERLAY MODAL FOR AUTHENTICATION */}
-{activeRoleModal && (
-  <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-slate-100 relative">
-      
-      {/* Close Cross */}
-      <button 
-        onClick={() => { setActiveRoleModal(null); setError(""); }}
-        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-sm"
-      >
-        ✕
-      </button>
-
-      {/* Title Context */}
-      <div className="mb-6 text-center">
-        <h3 className="text-xl font-bold text-slate-900">Workspace Authorization</h3>
-        <p className="text-xs text-slate-500 mt-1">
-          Please enter your credentials to clear the security barrier for the <span className="font-semibold text-indigo-600">{activeRoleModal}</span> workspace.
-        </p>
-      </div>
-
-      {/* Error Notification Banner */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 font-medium">
-          {error}
-        </div>
-      )}
-
-      {/* Forms Submission Block */}
-      <form onSubmit={handleLoginSubmit} className="space-y-4">
-        <div>
-          <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Corporate Email</label>
-          <input
-            type="email"
-            required
-            placeholder="name@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border border-slate-200 outline-none focus:border-indigo-500 rounded-xl px-3 py-2.5 text-sm text-slate-700 transition-all shadow-sm"
-          />
-        </div>
-
-        <div>
-          <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Secret Password</label>
-          <input
-            type="password"
-            required
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border border-slate-200 outline-none focus:border-indigo-500 rounded-xl px-3 py-2.5 text-sm text-slate-700 transition-all shadow-sm"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full mt-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white text-sm font-medium py-2.5 rounded-xl transition-all shadow-sm flex justify-center items-center"
-        >
-          {loading ? "Authenticating Profile..." : `Enter ${activeRoleModal} Workspace`}
-        </button>
-      </form>
-    </div>
-  </div>
-)}
+      <footer className="w-full text-center py-6 text-xs text-slate-400 border-t border-slate-200/50 bg-white/60">
+        &copy; {new Date().getFullYear()} FWC Enterprise Networks. All system interactions are fully audited.
+      </footer>
     </div>
   );
 }

@@ -30,17 +30,46 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true, 
     },
+    // ✨ NEW: Safely tracks and registers the official employee starting date
+    joiningDate: {
+      type: String,
+      default: ""
+    },
+    // 👥 Holds dashboard group mappings safely
+    team: {
+      type: String,
+      default: ""
+    },
+    // 📊 PROFILE DATA EXPANSION: Added to prevent data drops and the default "E" fallback
+    phone: {
+      type: String,
+      default: ""
+    },
+    address: {
+      type: String,
+      default: ""
+    },
+    avatarUrl: {
+      type: String,
+      default: null // Stores your Base64 profile image string permanently
+    }
   },
   { timestamps: true }
 );
 
-// 🔒 Automatically hash the password before saving it to MongoDB
+/// 🔒 Robust Hashing Guard: Prevents double-hashing loops during data modification
 UserSchema.pre("save", async function () {
+  // If the password field wasn't directly changed, skip hashing entirely!
   if (!this.isModified("password")) {
-    return; 
+    return; // Just return to stop execution early
   }
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  } catch (error) {
+    throw error; // Throwing an error inside an async hook correctly passes it to Mongoose
+  }
 });
 
 // 🔑 Helper method to verify passwords during login requests

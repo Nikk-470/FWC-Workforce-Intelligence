@@ -1,11 +1,11 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
 
-// 1. Keep your original Recruiter sidebar import from components
+// 🟢 FIXED: Removed curly braces to cleanly read your 'export default function Sidebar'
 import Sidebar from "@/components/navigation/Sidebar"; 
 
-// 2. Import your dedicated Admin sidebar right from its own Admin page home folder!
-import AdminSidebar from "@/pages/Admin/AdminSidebar"; 
+// 🟢 FIXED: Lowercase path to align safely with your admin pages folder structure
+import AdminSidebar from "@/pages/admin/AdminSidebar"; 
 
 export default function DashboardLayout({ children }) {
   const location = useLocation();

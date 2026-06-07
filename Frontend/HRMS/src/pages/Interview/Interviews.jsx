@@ -1,11 +1,15 @@
 import DashboardLayout from "@/layouts/DashboardLayout";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import AIInterviewFeedbackView from "./AIInterviewFeedbackView"; // Import the feedback view here
 
 export default function InterviewsPage() {
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Track state for viewing a specific candidate's AI Evaluation report
+  const [selectedAiReport, setSelectedAiReport] = useState(null);
 
   useEffect(() => {
     fetchScheduledInterviews();
@@ -28,13 +32,32 @@ export default function InterviewsPage() {
     item.interviewDetails?.type?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const copyAiInviteLink = (candidateId) => {
+    const generatedLink = `${window.location.origin}/interview/session/${candidateId}`;
+    navigator.clipboard.writeText(generatedLink);
+    alert("Candidate AI Assessment link copied to clipboard!");
+  };
+
+  // If a recruiter clicks "View AI Report", shift view from list to the explicit evaluation deck
+  if (selectedAiReport) {
+    return (
+      <AIInterviewFeedbackView 
+        interviewData={selectedAiReport} 
+        onBack={() => {
+          setSelectedAiReport(null);
+          fetchScheduledInterviews(); // Refresh structural listings
+        }} 
+      />
+    );
+  }
+
   return (
     <DashboardLayout>
       {/* Top Header Row */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Interview Calendars</h1>
-          <p className="text-slate-500 mt-1">Track, monitor, and manage upcoming syncs with candidates.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Interview Central</h1>
+          <p className="text-slate-500 mt-1">Track, monitor, and audit both human syncs and deployed AI bots.</p>
         </div>
         
         <input
@@ -56,20 +79,26 @@ export default function InterviewsPage() {
         <div className="space-y-6">
           
           {/* Quick Metrics Cards */}
-          <div className="grid sm:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-4 gap-4">
             <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Booked</p>
-              <h3 className="text-2xl font-bold text-slate-800 mt-1">{interviews.length} Sessions</h3>
+              <h3 className="text-xl font-bold text-slate-800 mt-1">{interviews.length} Sessions</h3>
             </div>
             <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wider text-indigo-500">Technical Rounds</p>
-              <h3 className="text-2xl font-bold text-indigo-600 mt-1">
+              <h3 className="text-xl font-bold text-indigo-600 mt-1">
                 {interviews.filter(i => i.interviewDetails?.type === "Technical Round").length} Active
               </h3>
             </div>
             <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500">Shortlisted Candidates Scheduled</p>
-              <h3 className="text-2xl font-bold text-emerald-600 mt-1">
+              <p className="text-xs font-semibold uppercase tracking-wider text-violet-500">AI Voice Screeners</p>
+              <h3 className="text-xl font-bold text-violet-600 mt-1">
+                {interviews.filter(i => i.interviewDetails?.type?.includes("AI")).length} Deployed
+              </h3>
+            </div>
+            <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-500">Shortlisted</p>
+              <h3 className="text-xl font-bold text-emerald-600 mt-1">
                 {interviews.filter(i => i.recommendation === "Shortlist").length} Profiles
               </h3>
             </div>
@@ -78,7 +107,7 @@ export default function InterviewsPage() {
           {/* Master Schedule List Grid Layout */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="font-bold text-slate-800 text-base">Upcoming Sessions</h2>
+              <h2 className="font-bold text-slate-800 text-base">All Sessions Directory</h2>
             </div>
 
             <div className="overflow-x-auto">
@@ -93,7 +122,9 @@ export default function InterviewsPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                   {filteredInterviews.map((item) => {
-                    const sessionDate = new Date(item.interviewDetails?.date);
+                    const sessionDate = new Date(item.interviewDetails?.date || item.scheduledAt);
+                    const isAiRound = item.interviewDetails?.type?.includes("AI") || item.mode?.includes("AI");
+
                     return (
                       <tr key={item._id} className="hover:bg-slate-50/80 transition-all">
                         {/* Name & Contact */}
@@ -106,37 +137,72 @@ export default function InterviewsPage() {
 
                         {/* Round badge */}
                         <td className="py-4 px-6">
-                          <span className="inline-block bg-indigo-50 text-indigo-700 font-semibold text-xs px-2.5 py-1 rounded-md border border-indigo-100">
-                            {item.interviewDetails?.type || "General Round"}
+                          <span className={`inline-block font-semibold text-xs px-2.5 py-1 rounded-md border ${
+                            isAiRound 
+                              ? "bg-violet-50 text-violet-700 border-violet-100" 
+                              : "bg-indigo-50 text-indigo-700 border-indigo-100"
+                          }`}>
+                            {isAiRound ? "🤖 AI Voice Assessment" : (item.interviewDetails?.type || "General Round")}
                           </span>
                         </td>
 
-                        {/* Structured Date & Time string */}
+                        {/* Structured Date & Time */}
                         <td className="py-4 px-6 font-medium text-slate-600">
                           {sessionDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                           <span className="text-slate-400 mx-1.5">•</span>
                           {sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </td>
 
-                        {/* Direct Video Connection Action Trigger */}
+                        {/* Action buttons mapping conditional streams */}
                         <td className="py-4 px-6 text-right">
-                          <a
-                            href={item.interviewDetails?.link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs px-3.5 py-2 rounded-xl shadow-sm transition-all"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                              <path d="M3.25 4A2.25 2.25 0 0 0 1 6.25v7.5A2.25 2.25 0 0 0 3.25 16h7.5A2.25 2.25 0 0 0 13 13.75v-7.5A2.25 2.25 0 0 0 10.75 4h-7.5ZM19 4.75a.75.75 0 0 0-1.28-.53l-3 3a.75.75 0 0 0-.22.53v4.5c0 .2.08.39.22.53l3 3a.75.75 0 0 0 1.28-.53V4.75Z" />
-                            </svg>
-                            Join Call
-                          </a>
+                          {isAiRound ? (
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => copyAiInviteLink(item._id)}
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-3 py-2 rounded-xl transition-all"
+                              >
+                                🔗 Copy Invite Link
+                              </button>
+                              <button
+                                onClick={() => setSelectedAiReport({
+                                  candidateName: item.name,
+                                  targetRole: item.targetRole || "Software Engineer",
+                                  matchDate: sessionDate.toLocaleDateString(),
+                                  callDuration: "14 Mins 22 Secs",
+                                  voiceToneUsed: item.config?.voiceTone || "Professional Male",
+                                  overallScore: 42, // Mock rating data container
+                                  feedbackMatrix: {
+                                    positives: ["Clear articulation of tech structures.", "Highly proactive optimizations."],
+                                    negatives: ["Minor hesitation on advanced fallbacks."]
+                                  },
+                                  extractedContext: {
+                                    skillsVerified: item.skillsMatrix || ["React", "Node.js"],
+                                    projectsDiscussed: ["Production Sandbox Suite"]
+                                  }
+                                })}
+                                className="bg-violet-600 hover:bg-violet-700 text-white font-medium text-xs px-3.5 py-2 rounded-xl shadow-sm transition-all"
+                              >
+                                View AI Report
+                              </button>
+                            </div>
+                          ) : (
+                            <a
+                              href={item.interviewDetails?.link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs px-3.5 py-2 rounded-xl shadow-sm transition-all"
+                            >
+                              Join Human Call
+                            </a>
+                          )}
                         </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
+              
+              {/* Fallback search alert element */}
               {filteredInterviews.length === 0 && (
                 <p className="text-center text-xs text-slate-400 py-6">No matching records fit your search criteria.</p>
               )}

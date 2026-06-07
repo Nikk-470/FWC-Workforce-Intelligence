@@ -22,17 +22,31 @@ export default function Login() {
         password,
       });
 
-      if (response.data.success) {
-        const { token, role } = response.data;
+      // 🔄 Directly monitor response headers/data packages safely
+      if (response.data && response.data.token) {
+        const token = response.data.token;
+        // 🚀 Extract the clean role parameter from inside the backend's nested user object!
+        const userRole = response.data.user?.role || ""; 
 
         // 💾 Save the real JWT token inside localStorage!
         localStorage.setItem("fwc_token", token);
 
-        // 🔀 Securely redirect based on the user role from MongoDB
-        if (role.toLowerCase() === "admin") navigate("/admin");
-        else if (role.toLowerCase() === "recruiter") navigate("/recruiter");
-        else if (role.toLowerCase() === "manager") navigate("/manager");
-        else navigate("/employee");
+        // 💾 Save user data and role details for dashboard rendering context tracks
+        localStorage.setItem("user_role", userRole);
+        localStorage.setItem("fwc_user", JSON.stringify(response.data.user));
+
+        // 🔀 Securely redirect based on the user role case-insensitively
+        const cleanRole = userRole.toLowerCase().trim();
+        
+        if (cleanRole === "admin") {
+          navigate("/admin");
+        } else if (cleanRole === "recruiter") {
+          navigate("/recruiter");
+        } else if (cleanRole === "senior manager" || cleanRole === "manager") {
+          navigate("/manager"); // Redirects to manager dashboard layout smoothly
+        } else {
+          navigate("/employee");
+        }
       }
     } catch (error) {
       console.error("Login connection error:", error);
@@ -44,6 +58,14 @@ export default function Login() {
 
   // 🧪 Quick bypass function for development testing
   const handleQuickBypass = (role) => {
+    // 💾 Set temporary mock properties inside storage parameters so bypass views don't crash
+    localStorage.setItem("user_role", role);
+    localStorage.setItem("fwc_user", JSON.stringify({
+      name: role === "employee" ? "Regular Employee Node" : "Senior Manager Asset",
+      email: `${role}@fwc.com`,
+      employee_id: "EMP-MOCK-999",
+      designation: role === "employee" ? "Software Engineer Associate" : "Cluster Operations Lead"
+    }));
     navigate(`/${role}`);
   };
 
@@ -110,6 +132,12 @@ export default function Login() {
           </button>
           <button onClick={() => handleQuickBypass("recruiter")} className="bg-slate-50 border text-slate-600 hover:bg-slate-100 py-2 rounded-xl text-[11px] font-bold transition-all">
             💼 Recruiter
+          </button>
+          <button onClick={() => handleQuickBypass("manager")} className="bg-slate-50 border text-slate-600 hover:bg-slate-100 py-2 rounded-xl text-[11px] font-bold transition-all">
+            👔 Manager View
+          </button>
+          <button onClick={() => handleQuickBypass("employee")} className="bg-slate-50 border text-slate-600 hover:bg-slate-100 py-2 rounded-xl text-[11px] font-bold transition-all">
+            👤 Employee View
           </button>
         </div>
       </div>

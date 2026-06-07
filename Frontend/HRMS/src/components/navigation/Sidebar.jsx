@@ -1,91 +1,80 @@
+import React from "react";
 import {
   LayoutDashboard,
   Users,
   Briefcase,
-  Video, // 📅 Added for your new page!
+  Video, 
   CalendarDays,
   BarChart3,
   Settings,
+  FolderPlus 
 } from "lucide-react";
-// Import Link from react-router-dom so clicking tabs changes pages without reloading the whole browser
 import { Link, useLocation } from "react-router-dom"; 
 
 const menuItems = [
   {
     title: "Dashboard",
     icon: LayoutDashboard,
-    path: "/recruiter", // Matches your current URL structure
+    path: "/recruiter", 
   },
   {
-    title: "Employees",
-    icon: Users,
-    path: "/recruiter/employees",
+    title: "Pipeline Screening",
+    icon: Briefcase, 
+    path: "/recruiter/pipeline",
   },
+  
   {
     title: "Recruitment",
     icon: Briefcase,
     path: "/recruiter/recruitment",
   },
   {
-    title: "Interviews", // 📅 Your brand new navigation button!
+    title: "Interviews", 
     icon: Video,
     path: "/recruiter/interviews",
   },
+ 
+  
   {
-    title: "Attendance",
-    icon: CalendarDays,
-    path: "/recruiter/attendance",
-  },
-  {
-    title: "Analytics",
-    icon: BarChart3,
-    path: "/recruiter/analytics",
-  },
-  {
-    title: "Settings",
-    icon: Settings,
-    path: "/recruiter/settings",
-  },
-  {
-    title: "Recruitment",
-    icon: Briefcase,
-    path: "/recruiter/jobs", // Change path to match this location string
+    title: "Job Openings", 
+    icon: FolderPlus,      
+    path: "/recruiter/jobs", 
   }
 ];
 
+// 🟢 THE CRITICAL FIX: Explicitly exporting default function wrapper
 export default function Sidebar() {
-  const location = useLocation(); // Tracks which page you are currently viewing
+  const location = useLocation(); 
 
   return (
-    <aside className="w-72 bg-white border-r h-screen p-4 flex flex-col justify-between">
+    <aside className="w-72 bg-white border-r h-screen p-4 flex flex-col justify-between shadow-xs">
       <div>
-        {/* Logo / Title Branding */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold">FWC</h2>
-          <p className="text-sm text-slate-500">Workforce Intelligence</p>
+        {/* Branding Headers */}
+        <div className="mb-8 px-2">
+          <h2 className="text-xl font-black text-slate-900 tracking-tight">FWC</h2>
+          <p className="text-xs font-medium text-slate-400">Workforce Intelligence</p>
         </div>
 
-        {/* Navigation List Links */}
-        <div className="space-y-2">
+        {/* Mapped Action Buttons */}
+        <div className="space-y-1">
           {menuItems.map((item) => {
-            // Check if this menu item matches the page the recruiter is looking at
             const isActive = location.pathname === item.path;
 
             return (
               <Link
-                key={item.title}
-                to={item.path} // 'to' replaces standard 'href' in React Router
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition text-sm ${
+                key={item.path} 
+                to={item.path}  
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold transition text-xs ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-600" // Highlight style if active tab
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900" // Standard fallback style
+                    ? "bg-indigo-50 text-indigo-600 shadow-3xs" 
+                    : "text-slate-500 hover:bg-slate-50/80 hover:text-slate-900" 
                 }`}
               >
                 <item.icon 
-                  size={20} 
-                  className={isActive ? "text-indigo-600" : "text-slate-400"} 
+                  size={16} 
+                  className={isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"} 
                 />
-                {item.title}
+                <span>{item.title}</span>
               </Link>
             );
           })}

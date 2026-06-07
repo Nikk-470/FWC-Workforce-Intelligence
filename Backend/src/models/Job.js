@@ -1,65 +1,34 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const jobSchema = new mongoose.Schema(
-  {
-    title: {
-      type: String,
-      required: [true, "Job title is required"],
-      trim: true,
-    },
-    department: {
-      type: String,
-      required: [true, "Department is required"],
-      trim: true,
-    },
-    location: {
-      type: String,
-      required: [true, "Location is required"], // e.g., "Remote", "New York, NY"
-      trim: true,
-    },
-    type: {
-      type: String,
-      required: true,
-      enum: ["Full-time", "Part-time", "Contract", "Internship"],
-      default: "Full-time",
-    },
-    experienceLevel: {
-      type: String,
-      required: true,
-      enum: ["Junior", "Mid-level", "Senior", "Lead/Executive"],
-    },
-    description: {
-      type: String,
-      required: [true, "Job description is required"],
-    },
-    requirements: [
-      {
-        type: String, // Array of key skills/requirements for AI screening matching
-      },
-    ],
-    salaryRange: {
-      min: { type: Number, default: 0 },
-      max: { type: Number, default: 0 },
-      currency: { type: String, default: "USD" },
-    },
-    status: {
-      type: String,
-      enum: ["Draft", "Active", "Closed", "Archived"],
-      default: "Active",
-    },
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Ties the job to the recruiter/manager who posted it
-      required: false, // Set to true later if you have active auth middleware
-    },
-    applicationsCount: {
-      type: Number,
-      default: 0,
-    },
+const JobSchema = new mongoose.Schema({
+  // --- Core Fields ---
+  title: { type: String, required: true, default: "Untitled Position" },
+  department: { type: String, required: true, default: "General Engineering" },
+  location: { type: String, required: true, default: "Remote" },
+  type: { type: String, required: true, default: "Full-time" },
+  experienceLevel: { type: String, default: "Junior" },
+  description: { type: String, required: true, default: "No description provided." },
+  
+  // Support both String format and Array format safely
+  requirements: { type: mongoose.Schema.Types.Mixed, default: "" }, 
+
+  // --- 🟢 Backward Compatibility Layout Fields (For older postings) ---
+  salaryType: { type: String, default: "Fixed Amount" },
+  minSalary: { type: Number, default: 0 },
+  maxSalary: { type: Number, default: 0 },
+  currency: { type: String, default: "India (INR)" },
+  applicationsCount: { type: Number, default: 0 },
+
+  // --- 🟢 New Interactive Fields (Fixes the 500 Form Crash) ---
+  salaryRange: {
+    min: { type: Number, default: 0 },
+    max: { type: Number, default: 0 },
+    currency: { type: String, default: "INR" }
   },
-  {
-    timestamps: true, // Automatically manages createdAt and updatedAt fields
-  }
-);
+  openingFrom: { type: Date },
+  openingTo: { type: Date },
+  jdPdfUrl: { type: String, default: null }
 
-module.exports = mongoose.model("Job", jobSchema);
+}, { timestamps: true });
+
+module.exports = mongoose.model('Job', JobSchema);

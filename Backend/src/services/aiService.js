@@ -5,7 +5,7 @@ const client = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
 });
 
-const analyzeResume = async (resumeText) => {
+const analyzeResume = async (resumeText, jobRequirements = "General Application") => {
 
   const completion =
     await client.chat.completions.create({
@@ -16,14 +16,21 @@ const analyzeResume = async (resumeText) => {
         {
           role: "system",
           content: `
-          You are an expert HR recruiter.
+          You are an expert HR recruiter. Your job is to accurately grade how well a candidate's resume matches the Target Job Requirements provided by the user.
           
           Return ONLY raw JSON.
           Do not use markdown.
           Do not wrap response inside triple backticks.
           
-          Format:
+          CRITICAL FOR MATCH SCORE:
+          - Look at the Target Job Requirements provided below.
+          - Evaluate the candidate's resume text thoroughly.
+          - Under the "score" key, return a matching score between 0.0 and 10.0 based strictly on how well their skills, experience, and background match the requirements.
           
+          Target Job Requirements:
+          ${jobRequirements}
+          
+          Format:
           {
             "name": "",
             "email": "",
@@ -37,15 +44,15 @@ const analyzeResume = async (resumeText) => {
             "recommendation": ""
           }
           
-Recommendation:
-Shortlist
-Consider
-Reject
-`,
+          Recommendation options:
+          Shortlist
+          Consider
+          Reject
+          `,
         },
         {
           role: "user",
-          content: resumeText,
+          content: `Here is the candidate's Resume Text:\n\n${resumeText}`,
         },
       ],
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
+import axios from 'axios';
 import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertTriangle, Users } from 'lucide-react';
 
 // 1. IMPORT YOUR ROUTING LAYOUT ALIASES
@@ -8,14 +9,15 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 
 const AdminAttendance = ({ isDarkMode }) => {
   const [csvData, setCsvData] = useState([]);
-  const [fileInfo, setFileInfo] = useState(null);
-  const [uploadStatus, setUploadStatus] = useState('idle'); // idle, processing, success, error
+  const [rawFile, setRawFile] = useState(null); // Keeps track of the file instance for the backend post
+  const [uploadStatus, setUploadStatus] = useState('idle'); // idle, processing, success, error, synced
+  const [syncMessage, setSyncMessage] = useState('');
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setFileInfo(file);
+    setRawFile(file);
     setUploadStatus('processing');
 
     Papa.parse(file, {
@@ -28,9 +30,10 @@ const AdminAttendance = ({ isDarkMode }) => {
         if (hasHeaders) {
           setCsvData(results.data);
           setUploadStatus('success');
-          console.log("Parsed Biometric Logs for Database Sync:", results.data);
+          setSyncMessage('');
         } else {
           setUploadStatus('error');
+          setRawFile(null);
           alert("Invalid CSV Format! Spreadsheet must contain columns: employee_id, date, clock_in, clock_out");
         }
       },
@@ -41,8 +44,38 @@ const AdminAttendance = ({ isDarkMode }) => {
     });
   };
 
+  // 📡 NEW: Dispatch Multipart Form Data Matrix to the backend route
+  const handleCommitAndSync = async () => {
+    if (!rawFile) return;
+
+    try {
+      setUploadStatus('processing');
+      const token = localStorage.getItem("fwc_token");
+      
+      const formData = new FormData();
+      formData.append('file', rawFile); // Matches upload.single("file") signature exactly
+
+      const res = await axios.post('http://localhost:5000/api/attendance/upload-csv', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (res.data.success) {
+        setUploadStatus('synced');
+        setSyncMessage(res.data.message || 'Biometric rows mapped successfully!');
+        setCsvData([]); // Clear staging array after successful persistence
+        setRawFile(null);
+      }
+    } catch (err) {
+      console.error("Failed syncing logs to database engine:", err);
+      setUploadStatus('error');
+      alert(err.response?.data?.message || "Server error transmitting attendance payload.");
+    }
+  };
+
   return (
-    // 2. ENCAPSULATE EVERYTHING INSIDE YOUR SYSTEM LAYOUT WRAPPERS
     <DashboardLayout>
       <DashboardHeader />
 
@@ -67,6 +100,7 @@ const AdminAttendance = ({ isDarkMode }) => {
             accept=".csv" 
             onChange={handleFileUpload} 
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+            disabled={uploadStatus === 'processing'}
           />
           
           <div className="flex flex-col items-center justify-center space-y-3 pointer-events-none">
@@ -81,17 +115,31 @@ const AdminAttendance = ({ isDarkMode }) => {
         </div>
 
         {/* DYNAMIC UPLOAD ALERTS BLOCK */}
+        {uploadStatus === 'processing' && (
+          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-3 text-xs text-blue-500 font-medium animate-pulse">
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p>Processing and transmitting biometric logs into database pipeline...</p>
+          </div>
+        )}
+
         {uploadStatus === 'success' && (
           <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-3 text-xs text-green-600 font-medium">
             <CheckCircle2 size={16} />
-            <p>Successfully processed <span className="font-bold">{fileInfo?.name}</span>. Found <span className="font-bold">{csvData.length}</span> unique punch row logs ready to sync.</p>
+            <p>Successfully processed preview block. Found <span className="font-bold">{csvData.length}</span> unique logs ready to sync.</p>
+          </div>
+        )}
+
+        {uploadStatus === 'synced' && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-xs text-emerald-600 font-medium">
+            <CheckCircle2 size={16} />
+            <p>{syncMessage || "Database synchronization step completed successfully!"}</p>
           </div>
         )}
 
         {uploadStatus === 'error' && (
           <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-xs text-red-500 font-medium">
             <AlertTriangle size={16} />
-            <p>Processing Failed. Please verify row schemas and template alignments.</p>
+            <p>Operational Sync Failure. Please verify row schemas and template alignments.</p>
           </div>
         )}
 
@@ -127,7 +175,7 @@ const AdminAttendance = ({ isDarkMode }) => {
             
             <div className="mt-5 pt-4 border-t dark:border-slate-900 border-slate-100 flex justify-end">
               <button 
-                onClick={() => alert('Data committed to system state successfully!')} 
+                onClick={handleCommitAndSync} 
                 className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-md transition-colors"
               >
                 Commit & Sync Logs to Employees
