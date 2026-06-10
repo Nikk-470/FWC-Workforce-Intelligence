@@ -17,7 +17,8 @@ export default function Login() {
 
     try {
       // 📡 Send actual credentials to your Express auth controller
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/auth/login`, {
         email,
         password,
       });
