@@ -31,8 +31,9 @@ const app = express();
 // 🛡️ GLOBAL MIDDLEWARES (💡 FIXED: Must run first before ANY api routes are matched!)
 // ==========================================================================
 const allowedOrigins = [
-  "http://localhost:5173", 
-  "https://fwc-workforce-intelligence.vercel.app"
+  "http://localhost:5173",
+  "https://fwc-workforce-intelligence.vercel.app",
+  "https://fwc-workforce-intelligence-abv6gzpq3-nikk-470s-projects.vercel.app"
 ];
 
 app.use(cors({
