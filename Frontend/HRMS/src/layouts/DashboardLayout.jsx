@@ -5,7 +5,7 @@ import { useLocation } from "react-router-dom";
 import Sidebar from "@/components/navigation/Sidebar"; 
 
 // 🟢 FIXED: Lowercase path to align safely with your admin pages folder structure
-import AdminSidebar from "@/pages/admin/AdminSidebar"; 
+import AdminSidebar from "@/pages/Admin/AdminSidebar"; 
 
 export default function DashboardLayout({ children }) {
   const location = useLocation();
