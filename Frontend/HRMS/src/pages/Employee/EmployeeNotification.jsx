@@ -12,7 +12,7 @@ export default function EmployeeNotification({ currentEmployeeId }) {
       
       try {
         const token = localStorage.getItem("fwc_token");
-        const res = await axios.get(`http://localhost:5000/api/tasks/notifications/${currentEmployeeId}`, {
+        const res = await axios.get(`Frontend/HRMS/src/**/api/tasks/notifications/${currentEmployeeId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         

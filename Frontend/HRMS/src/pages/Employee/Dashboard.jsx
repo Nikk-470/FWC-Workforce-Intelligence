@@ -123,7 +123,7 @@ const EmployeeDashboard = () => {
         return;
       }
 
-      const response = await axios.get(`http://localhost:5000/api/tasks/my-tasks?empId=${targetEmpId}`, {
+      const response = await axios.get(`Frontend/HRMS/src/**/api/tasks/my-tasks?empId=${targetEmpId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -150,7 +150,7 @@ const EmployeeDashboard = () => {
     try {
       const token = localStorage.getItem("fwc_token");
       const response = await axios.put(
-        `http://localhost:5000/api/tasks/update-status/${taskId}`,
+        `Frontend/HRMS/src/**/api/tasks/update-status/${taskId}`,
         { status: nextStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -213,7 +213,7 @@ const EmployeeDashboard = () => {
     try {
       const token = localStorage.getItem("fwc_token");
       const response = await axios.put(
-        "http://localhost:5000/api/auth/profile/update", 
+        "Frontend/HRMS/src/**/api/auth/profile/update", 
         {
           name: formData.name,
           email: user.email,
@@ -644,7 +644,7 @@ function EmployeeMeetingDesk({ user, isDarkMode }) {
 
   const fetchRooms = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/meetings/employee/${user.employee_id}`);
+      const res = await axios.get(`Frontend/HRMS/src/**/api/meetings/employee/${user.employee_id}`);
       if (res.data.success) setMeetings(res.data.meetings);
     } catch (e) { console.error(e); }
   };
@@ -657,7 +657,7 @@ function EmployeeMeetingDesk({ user, isDarkMode }) {
       setActiveCallId(roomId);
 
       // 1. Instantly connect to backend WebSocket gateway
-      socketRef.current = io("http://localhost:5000");
+      socketRef.current = io("Frontend/HRMS/src/**");
 
       // 2. Spin up native hardware trackers
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });

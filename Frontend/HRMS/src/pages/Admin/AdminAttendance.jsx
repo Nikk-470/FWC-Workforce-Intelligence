@@ -55,7 +55,7 @@ const AdminAttendance = ({ isDarkMode }) => {
       const formData = new FormData();
       formData.append('file', rawFile); // Matches upload.single("file") signature exactly
 
-      const res = await axios.post('http://localhost:5000/api/attendance/upload-csv', formData, {
+      const res = await axios.post('Frontend/HRMS/src/**/api/attendance/upload-csv', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           Authorization: `Bearer ${token}`

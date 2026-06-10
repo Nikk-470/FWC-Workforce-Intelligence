@@ -44,7 +44,7 @@ const EmployeesPage = () => {
     setBackendError("");
     try {
       const token = localStorage.getItem("fwc_token");
-      const response = await axios.get("http://localhost:5000/api/employees", {
+      const response = await axios.get("Frontend/HRMS/src/**/api/employees", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (Array.isArray(response.data)) {
@@ -101,7 +101,7 @@ const EmployeesPage = () => {
       console.log("Sending payload to backend onboarding endpoint:", payload);
       
       // Hit the cloud pipeline onboard endpoint directly
-      const response = await axios.post("http://localhost:5000/api/employees/onboard", payload, {
+      const response = await axios.post("Frontend/HRMS/src/**/api/employees/onboard", payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -154,7 +154,7 @@ const EmployeesPage = () => {
       const token = localStorage.getItem("fwc_token");
       const targetId = employeeTargetForDeletion._id || employeeTargetForDeletion.employee_id;
       
-      await axios.delete(`http://localhost:5000/api/employees/${targetId}`, {
+      await axios.delete(`Frontend/HRMS/src/**/api/employees/${targetId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmployeeTargetForDeletion(null);

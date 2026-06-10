@@ -11,7 +11,7 @@ export default function EmployeeTaskPortal({ user }) {
       setLoading(true);
       const token = localStorage.getItem("fwc_token"); 
       
-      const res = await axios.get(`http://localhost:5000/api/tasks/employee/${user.employee_id}`, {
+      const res = await axios.get(`Frontend/HRMS/src/**/api/tasks/employee/${user.employee_id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
   
@@ -41,7 +41,7 @@ export default function EmployeeTaskPortal({ user }) {
         )
       );
 
-      await axios.patch(`http://localhost:5000/api/tasks/${taskId}/status`, 
+      await axios.patch(`Frontend/HRMS/src/**/api/tasks/${taskId}/status`, 
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );

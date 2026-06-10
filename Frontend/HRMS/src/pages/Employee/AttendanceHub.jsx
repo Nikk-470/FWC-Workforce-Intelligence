@@ -25,7 +25,7 @@ const AttendanceHub = ({ user, isDarkMode }) => {
       setLoading(true);
       const token = localStorage.getItem("fwc_token");
       
-      const res = await axios.get(`http://localhost:5000/api/attendance/employee/${user.employee_id}`, {
+      const res = await axios.get(`Frontend/HRMS/src/**/api/attendance/employee/${user.employee_id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -51,7 +51,7 @@ const AttendanceHub = ({ user, isDarkMode }) => {
       setButtonLoading(true);
       const token = localStorage.getItem("fwc_token");
       
-      const res = await axios.post(`http://localhost:5000/api/attendance/punch`, {
+      const res = await axios.post(`Frontend/HRMS/src/**/api/attendance/punch`, {
         employee_id: user.employee_id,
         employee_name: user.name
       }, {

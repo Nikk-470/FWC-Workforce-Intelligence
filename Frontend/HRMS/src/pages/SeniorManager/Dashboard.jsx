@@ -63,13 +63,13 @@ export default function SeniorManagerDashboard() {
       const token = localStorage.getItem("fwc_token");
 
       // 1. Grab all registered workspace employees
-      const empRes = await axios.get("http://localhost:5000/api/employees", {
+      const empRes = await axios.get("Frontend/HRMS/src/**/api/employees", {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmployees(empRes.data);
 
       // 2. Grab your custom managed database teams
-      const teamRes = await axios.get(`http://localhost:5000/api/teams?managerId=${targetManagerId}`, {
+      const teamRes = await axios.get(`Frontend/HRMS/src/**/api/teams?managerId=${targetManagerId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -140,7 +140,7 @@ export default function SeniorManagerDashboard() {
     setProfileSuccessMessage("");
     try {
       const token = localStorage.getItem("fwc_token");
-      await axios.put(`http://localhost:5000/api/employees/${managerUser._id}`, {
+      await axios.put(`Frontend/HRMS/src/**/api/employees/${managerUser._id}`, {
         phone: managerUser.phone,
         address: managerUser.address
       }, {
@@ -168,7 +168,7 @@ const handleCreateTeam = async (e) => {
   try {
     const token = localStorage.getItem("fwc_token");
     const response = await axios.post(
-      "http://localhost:5000/api/teams", 
+      "Frontend/HRMS/src/**/api/teams", 
       {
         name: trimmedName,
         managerId: managerUser._id
@@ -206,7 +206,7 @@ const handleCreateTeam = async (e) => {
       const token = localStorage.getItem("fwc_token");
       
       // Update employee's team allocation in MongoDB
-      const response = await axios.put(`http://localhost:5000/api/employees/${employeeId}`, {
+      const response = await axios.put(`Frontend/HRMS/src/**/api/employees/${employeeId}`, {
         team: viewingTeamDetails // Assigns them to the active team string name (e.g. "Alpha")
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -232,7 +232,7 @@ const handleCreateTeam = async (e) => {
       const token = localStorage.getItem("fwc_token");
       
       // Clearing the team field sets them back to an unassigned department asset
-      const response = await axios.put(`http://localhost:5000/api/employees/${employeeId}`, {
+      const response = await axios.put(`Frontend/HRMS/src/**/api/employees/${employeeId}`, {
         team: "" 
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -273,7 +273,7 @@ const handleCreateTeam = async (e) => {
 
       if (taskScope === "Team") {
         const response = await axios.post(
-          "http://localhost:5000/api/tasks/assign",
+          "Frontend/HRMS/src/**/api/tasks/assign",
           {
             title: trimmedTitle,
             description: "Deploys automatically via sprint workflow manager panel.",
@@ -297,7 +297,7 @@ const handleCreateTeam = async (e) => {
         }
 
         const response = await axios.post(
-          "http://localhost:5000/api/tasks/assign",
+          "Frontend/HRMS/src/**/api/tasks/assign",
           {
             title: trimmedTitle,
             description: "Dedicated single workflow item assignment.",
@@ -915,7 +915,7 @@ function LeaveTriagePanel() {
     try {
       setLoading(true);
       const token = localStorage.getItem("fwc_token");
-      const res = await axios.get("http://localhost:5000/api/leaves/admin/queue", {
+      const res = await axios.get("Frontend/HRMS/src/**/api/leaves/admin/queue", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -935,7 +935,7 @@ function LeaveTriagePanel() {
   const handleTriageAction = async (id, actionString) => {
     try {
       const token = localStorage.getItem("fwc_token");
-      const res = await axios.patch(`http://localhost:5000/api/leaves/admin/triage/${id}`, 
+      const res = await axios.patch(`Frontend/HRMS/src/**/api/leaves/admin/triage/${id}`, 
         { action: actionString },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -1047,7 +1047,7 @@ function ManagerMeetingControlPanel({ managerUser, teams, departmentEmployees })
   
   const loadManagerRooms = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/meetings/manager/${managerUser._id}`);
+      const res = await axios.get(`Frontend/HRMS/src/**/api/meetings/manager/${managerUser._id}`);
       if (res.data.success) setActiveRooms(res.data.meetings);
     } catch (err) { console.error(err); }
   };
@@ -1060,7 +1060,7 @@ function ManagerMeetingControlPanel({ managerUser, teams, departmentEmployees })
       setActiveCallRoomId(roomId);
 
       // 1. Fire up real-time bidirectional socket channels to backend server
-      socketRef.current = io("http://localhost:5000");
+      socketRef.current = io("Frontend/HRMS/src/**");
       
       // 2. Fetch local system media streams hardware access
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -1146,7 +1146,7 @@ function ManagerMeetingControlPanel({ managerUser, teams, departmentEmployees })
         department: managerUser.department, scheduledTime: meetingType === "Scheduled" ? scheduleDate : null
       };
 
-      const res = await axios.post("http://localhost:5000/api/meetings/create", payload, {
+      const res = await axios.post("Frontend/HRMS/src/**/api/meetings/create", payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem("fwc_token")}` }
       });
       if (res.data.success) {

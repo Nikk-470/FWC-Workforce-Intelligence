@@ -30,8 +30,8 @@ export default function JobPipelineDetails() {
     try {
       setIsLoading(true);
       const [jobsRes, candidatesRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/jobs"),
-        axios.get("http://localhost:5000/api/candidates")
+        axios.get("Frontend/HRMS/src/**/api/jobs"),
+        axios.get("Frontend/HRMS/src/**/api/candidates")
       ]);
 
       const currentJob = jobsRes.data?.find(j => j._id === jobId);
@@ -90,7 +90,7 @@ export default function JobPipelineDetails() {
         }
       };
 
-      await axios.post("http://localhost:5000/api/interviews/schedule", payload);
+      await axios.post("Frontend/HRMS/src/**/api/interviews/schedule", payload);
       alert("Standard human verification pipeline indexed successfully.");
       
       setSchedulingCandidate(null);

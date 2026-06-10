@@ -18,7 +18,7 @@ const PayrollLedger = ({ user, isDarkMode }) => {
         const token = localStorage.getItem("fwc_token");
         
         try {
-          const configRes = await axios.get("http://localhost:5000/api/payroll/admin/directory", {
+          const configRes = await axios.get("Frontend/HRMS/src/**/api/payroll/admin/directory", {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (configRes.data.success) {
@@ -31,7 +31,7 @@ const PayrollLedger = ({ user, isDarkMode }) => {
           console.error("Failed pulling general active terms:", cfgErr);
         }
 
-        const res = await axios.get(`http://localhost:5000/api/payroll/employee/${user.employee_id}`, {
+        const res = await axios.get(`Frontend/HRMS/src/**/api/payroll/employee/${user.employee_id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.data.success) {

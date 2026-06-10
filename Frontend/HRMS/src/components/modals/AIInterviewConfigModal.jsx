@@ -24,7 +24,7 @@ export default function AIInterviewConfigModal({ candidate, onClose, onDeploymen
       // 🟢 SAFE TIMESTAMP DECONSTRUCTION: Parse "YYYY-MM-DDTHH:MM" smoothly
       const [parsedDate, parsedTime] = configData.date.split("T");
 
-      const res = await axios.post("http://localhost:5000/api/interviews/schedule", {
+      const res = await axios.post("Frontend/HRMS/src/**/api/interviews/schedule", {
   // 🟢 1. Top-Level Identity Fields (Fixes the 400 error!)
   candidateId: candidate._id,
   name: candidate.name,

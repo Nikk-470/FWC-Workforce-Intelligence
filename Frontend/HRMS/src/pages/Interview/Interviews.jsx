@@ -17,7 +17,7 @@ export default function InterviewsPage() {
 
   const fetchScheduledInterviews = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/interviews/scheduled");
+      const res = await axios.get("Frontend/HRMS/src/**/api/interviews/scheduled");
       setInterviews(res.data || []);
     } catch (error) {
       console.error("Error loading interview calendar panel:", error);

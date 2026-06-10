@@ -120,7 +120,7 @@ export default function FWCAIWidget() {
   
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/fwcai",
+        "Frontend/HRMS/src/**/api/fwcai",
         {
           role: getRole(),
           message: textToSend,
