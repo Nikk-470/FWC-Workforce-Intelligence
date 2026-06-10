@@ -29,7 +29,7 @@ export default function JobsPage() {
 
   const fetchJobsCatalog = async () => {
     try {
-      const res = await axios.get("Frontend/HRMS/src/**/api/jobs");
+      const res = await axios.get("${import.meta.env.VITE_API_BASE_URL}/api/jobs");
       setJobs(res.data || []);
     } catch (error) {
       console.error("Error loading position data matrix:", error);
@@ -72,7 +72,7 @@ export default function JobsPage() {
       }
 
       // 🟢 4. Dispatch transaction payload using multipart headers
-      const res = await axios.post("Frontend/HRMS/src/**/api/jobs", dataPayload, {
+      const res = await axios.post("${import.meta.env.VITE_API_BASE_URL}/api/jobs", dataPayload, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

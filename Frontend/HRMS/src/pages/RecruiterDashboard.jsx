@@ -93,7 +93,7 @@ const fileInputRef = useRef(null);
 
   const fetchCandidates = async () => {
     try {
-      const res = await axios.get("Frontend/HRMS/src/**/api/candidates");
+      const res = await axios.get("${import.meta.env.VITE_API_BASE_URL}/api/candidates");
       setCandidates(res.data || []);
     } catch (error) {
       console.error("Error retrieving candidate tracking state:", error);
@@ -102,7 +102,7 @@ const fileInputRef = useRef(null);
 
   const fetchJobsCatalog = async () => {
     try {
-      const res = await axios.get("Frontend/HRMS/src/**/api/jobs");
+      const res = await axios.get("${import.meta.env.VITE_API_BASE_URL}/api/jobs");
       setJobs(res.data || []);
     } catch (error) {
       console.error("Error loading position data matrix:", error);
@@ -111,7 +111,7 @@ const fileInputRef = useRef(null);
 
   const fetchAnalytics = async () => {
     try {
-      const res = await axios.get("Frontend/HRMS/src/**/api/candidates/analytics");
+      const res = await axios.get("${import.meta.env.VITE_API_BASE_URL}/api/candidates/analytics");
       setAnalytics(res.data);
     } catch (error) {
       console.error("Error aggregating performance logs:", error);
@@ -120,7 +120,7 @@ const fileInputRef = useRef(null);
 
   const handleUpdateStatus = async (candidateId, nextStatus) => {
     try {
-      const res = await axios.put(`Frontend/HRMS/src/**/api/candidates/${candidateId}/status`, { status: nextStatus });
+      const res = await axios.put(`${import.meta.env.VITE_API_BASE_URL}/api/candidates/${candidateId}/status`, { status: nextStatus });
       if (res.data) {
         setSelectedCandidate(res.data.candidate);
         fetchCandidates();
@@ -152,7 +152,7 @@ const fileInputRef = useRef(null);
         }
       };
 
-      await axios.post("Frontend/HRMS/src/**/api/interviews/schedule", payload);
+      await axios.post("${import.meta.env.VITE_API_BASE_URL}/api/interviews/schedule", payload);
       alert("Standard human verification pipeline indexed successfully.");
       
       // Clean states out
@@ -187,7 +187,7 @@ const fileInputRef = useRef(null);
     });
 
     try {
-      const res = await axios.post("Frontend/HRMS/src/**/api/candidates/upload-direct", formDataPayload, {
+      const res = await axios.post("${import.meta.env.VITE_API_BASE_URL}/api/candidates/upload-direct", formDataPayload, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       
@@ -700,7 +700,7 @@ const fileInputRef = useRef(null);
       <td className="py-3.5 px-4 text-center">
         {c.resumePdfRawUrl || c.resumeUrl ? (
           <a
-            href={c.resumePdfRawUrl || `Frontend/HRMS/src/**/${c.resumeUrl}`}
+            href={c.resumePdfRawUrl || `${import.meta.env.VITE_API_BASE_URL}/${c.resumeUrl}`}
             target="_blank"
             rel="noreferrer"
             className="text-indigo-500 hover:text-indigo-600 font-bold underline"
@@ -745,7 +745,7 @@ const fileInputRef = useRef(null);
     targetButton.disabled = true;
 
     try {
-      const res = await axios.post(`Frontend/HRMS/src/**/api/candidates/${c._id}/evaluate-match`);
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/candidates/${c._id}/evaluate-match`);
       
       // Extract the score cleanly depending on your backend payload architecture structure
       const updatedScore = res.data?.score ?? res.data?.candidate?.score ?? res.data?.candidate?.aiScore ?? 0;

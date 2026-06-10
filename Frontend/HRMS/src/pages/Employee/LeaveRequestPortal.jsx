@@ -24,7 +24,7 @@ const LeaveRequestPortal = ({ user, isDarkMode }) => {
     if (!user?.employee_id) return;
     try {
       const token = localStorage.getItem("fwc_token");
-      const res = await axios.get(`Frontend/HRMS/src/**/api/leaves/history/${user.employee_id}`, {
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/leaves/history/${user.employee_id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -118,7 +118,7 @@ const LeaveRequestPortal = ({ user, isDarkMode }) => {
       setStatus({ type: '', msg: '' });
       const token = localStorage.getItem("fwc_token");
 
-      const res = await axios.post('Frontend/HRMS/src/**/api/leaves/request', payload, {
+      const res = await axios.post('${import.meta.env.VITE_API_BASE_URL}/api/leaves/request', payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
