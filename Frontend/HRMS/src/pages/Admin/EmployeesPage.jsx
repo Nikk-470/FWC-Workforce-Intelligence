@@ -100,10 +100,14 @@ const EmployeesPage = () => {
 
       console.log("Sending payload to backend onboarding endpoint:", payload);
       
-      // Hit the cloud pipeline onboard endpoint directly
-      const response = await axios.post("Frontend/HRMS/src/**/api/employees/onboard", payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      // Hit the cloud pipeline onboar endpoint directly
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/employees/onboard`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
       await fetchEmployeesFromDb();
       
