@@ -105,19 +105,27 @@ export default function LandingPage() {
   const slidesContent = [
     {
       title: timeGreeting,
-      description: "I hope you have an absolutely productive and great day ahead inside our control module."
+      role: "Admin",
+      email: "admin@company.com",
+      password: "password123"
     },
     {
-      title: "THOUGHT OF THE DAY",
-      description: "The best way to predict the future is to orchestrate and write code to create it line by line."
+      title: timeGreeting,
+      role: "Senior Manager",
+      email: "manager@company.com",
+      password: "password123"
     },
     {
-      title: "LAME CODE JOKE",
-      description: "Why do programmers wear glasses? Because they can't C# (see sharp) in the microenvironments!"
+      title: timeGreeting,
+      role: "Recruiter",
+      email: "recruiter@company.com",
+      password: "password123"
     },
     {
-      title: "JOIN OUR FAMILY",
-      description: "Tap the 'Explore Careers' button on the top right corner to apply for FWC jobs right away!"
+      title: timeGreeting,
+      role: "Employee",
+      email: "nikhilraushan470@gmail.com",
+      password: "bro1cc6214"
     }
   ];
 
@@ -218,7 +226,7 @@ export default function LandingPage() {
         </div>
 
         {/* 🤖 Column 2: New Diagonal Floating FWCAI Robot & Swipeable Component */}
-        <div className="hidden xl:flex w-[25%] flex-col justify-center items-center relative px-2">
+        <div className="hidden xl:flex w-[22%] flex-col justify-center items-start relative px-2 -ml-8">
           <div className="w-full aspect-[4/5] bg-white rounded-3xl p-6 border border-slate-200/90 flex flex-col justify-between shadow-lg animate-diagonal-float relative overflow-hidden group">
             
             {/* Top Frame: Purple Robot Header Section */}
@@ -236,13 +244,29 @@ export default function LandingPage() {
 
             {/* Middle Swipeable Content Container Element */}
             <div className="flex-grow flex flex-col justify-center relative py-4 select-none">
-              <div className="text-center px-2 space-y-3 transition-all duration-300 transform">
+            <div className="text-left px-2 space-y-3 transition-all duration-300 transform w-full">
                 <h5 className="text-[11px] font-extrabold tracking-widest text-indigo-600 uppercase bg-indigo-50 px-2 py-1 inline-block rounded-md">
                   {slidesContent[currentSlide].title}
                 </h5>
-                <p className="text-sm font-semibold text-slate-700 leading-relaxed antialiased">
-                  "{slidesContent[currentSlide].description}"
-                </p>
+                <div className="text-left w-full mt-4">
+  <p className="font-bold text-slate-900">
+    Login Credentials for {slidesContent[currentSlide].role}
+  </p>
+
+  <p className="mt-3">
+    <span className="font-semibold">Email:</span>{" "}
+    <span className="text-red-500 font-bold">
+      {slidesContent[currentSlide].email}
+    </span>
+  </p>
+
+  <p className="mt-2">
+    <span className="font-semibold">Password:</span>{" "}
+    <span className="text-red-500 font-bold">
+      {slidesContent[currentSlide].password}
+    </span>
+  </p>
+</div>
               </div>
             </div>
 
