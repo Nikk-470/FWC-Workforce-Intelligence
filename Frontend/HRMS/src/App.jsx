@@ -1,24 +1,22 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./pages/Landing/LandingPage";
 import CareersPage from "./pages/CareersPage/CareersPage";
-import InterviewsPage from "./pages/interview/Interviews.jsx";
-//import AIInterviewSandboxApp from "./pages/interview/AIInterviewSandboxApp.jsx";
+import InterviewsPage from "./pages/Interview/Interviews.jsx";
 
-// 👑 ADMIN DIRECTORY IMPORTS (Fixed to lowercase 'admin')
-import AdminDashboard from "./pages/admin/Dashboard"; 
-import EmployeesPage from "./pages/admin/EmployeesPage";
-import AdminAttendance from "./pages/admin/AdminAttendance";
-import AdminPaymentPanel from "./pages/admin/AdminPaymentPanel"; 
+// 👑 ADMIN DIRECTORY IMPORTS 
+import AdminDashboard from "./pages/Admin/Dashboard"; 
+import EmployeesPage from "./pages/Admin/EmployeesPage";
+import AdminAttendance from "./pages/Admin/AdminAttendance";
+import AdminPaymentPanel from "./pages/Admin/AdminPaymentPanel"; 
 
-// 💼 RECRUITER DIRECTORY IMPORTS (Fixed to lowercase 'recruiter')
+// 💼 RECRUITER DIRECTORY IMPORTS 
 import RecruiterDashboard from "./pages/RecruiterDashboard.jsx";
 import JobsPage from "./pages/recruiter/Jobs.jsx";
+import JobPipelineDetails from "./pages/recruiter/JobPipelineDetails"; 
 
-// 👥 OTHER ROLE DIRECTORIES (Fixed to lowercase 'employee' and 'seniormanager')
-import EmployeeDashboard from "./pages/employee/Dashboard";
-import SeniorManagerDashboard from "./pages/seniormanager/Dashboard";
-// At the top of App.jsx
-import JobPipelineDetails from "./pages/recruiter/JobPipelineDetails"; // Ensure this path matches where you saved the file
+// 👥 OTHER ROLE DIRECTORIES (Fixed to match your exact sidebar capitalization)
+import EmployeeDashboard from "./pages/Employee/Dashboard";
+import SeniorManagerDashboard from "./pages/SeniorManager/Dashboard";
 
 // 🛡️ Client-Side Session Guardian Guard
 const ProtectedRoute = ({ children }) => {
@@ -36,8 +34,8 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/careers" element={<CareersPage />} />
       
-      {/* 🎙️ Interactive Applicant Assessment Loop (Public Token Ingress) */}
-      <Route path="/interview/session/:token" element={<AIInterviewSandboxApp />} />
+      {/* 🎙️ Interactive Applicant Assessment Loop (Commented out because file was deleted) */}
+      {/* <Route path="/interview/session/:token" element={<AIInterviewSandboxApp />} /> */}
 
       {/* 👑 Dedicated Admin Operations Workspace Paths */}
       <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
@@ -50,8 +48,6 @@ function App() {
       <Route path="/recruiter/interviews" element={<ProtectedRoute><InterviewsPage /></ProtectedRoute>} />
       <Route path="/recruiter/jobs" element={<ProtectedRoute><JobsPage /></ProtectedRoute>} />
       
-      {/* 🟢 FIXED AND ALIGNED WITH YOUR SIDEBAR ARRAYS:
-          This route loads your RecruiterDashboard file where the new candidate pipeline tables and grading loops sit! */}
       <Route path="/recruiter/pipeline" element={<ProtectedRoute><RecruiterDashboard /></ProtectedRoute>} />
       <Route path="/recruiter/pipeline/:jobId" element={<JobPipelineDetails />} />
 
@@ -59,7 +55,7 @@ function App() {
       <Route path="/employee" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />
       <Route path="/manager" element={<ProtectedRoute><SeniorManagerDashboard /></ProtectedRoute>} />
 
-      {/* 🚫 Catch-All Routing Safety Valve (MUST REMAIN AT THE BOTTOM) */}
+      {/* 🚫 Catch-All Routing Safety Valve */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
