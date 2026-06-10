@@ -4,21 +4,39 @@ import axios from "axios";
 import FWCAIWidget from "@/components/ai/FWCAIWidget";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import AIInterviewConfigModal from "@/components/modals/AIInterviewConfigModal";
-
+import {  useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom"; // 🟢 Add useNavigate here
 
+
 export default function RecruiterDashboard() {
+
+
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+
   const [schedulingCandidate, setSchedulingCandidate] = useState(null); 
+  
+const [schedulingMode, setSchedulingMode] = useState("table");
+
+// 🟢 NEW: Reference pointer to activate hidden input array streams
+const fileInputRef = useRef(null);
+
   const [candidates, setCandidates] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [manualMeetingLink, setManualMeetingLink] = useState("https://meet.google.com/mock-room-id");
-  
+  const navigate = useNavigate();
+
+  // 🟢 NEW: Manual Internal Referral Ingestion Form States
   
   // 🏢 Job Drill-down Workflow View States
   const [viewMode, setViewMode] = useState("dashboard"); // Options: "dashboard", "jobsList", "jobPipeline"
   const [selectedJob, setSelectedJob] = useState(null); 
   const location = useLocation();
+
+  
+  const [manualJobId, setManualJobId] = useState("");
+  const [manualResumeFiles, setManualResumeFiles] = useState([]);
+  const [isUploadingManual, setIsUploadingManual] = useState(false);
+
   useEffect(() => {
     if (location.pathname === "/recruiter/pipeline") {
       setViewMode("jobPipeline");
@@ -53,6 +71,19 @@ export default function RecruiterDashboard() {
 
   // Search filter hooks
   const [searchQuery, setSearchQuery] = useState("");
+
+  // 🟢 NEW: Appends newly chosen resumes to the existing selected files list instead of overwriting them
+  const handleFileAppend = (e) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setManualResumeFiles((prev) => [...(prev || []), ...newFiles]);
+    }
+  };
+
+  // 🟢 NEW: Removes a specifically indexed resume from the selection track if clicked by mistake
+  const handleRemoveFileItem = (indexToRemove) => {
+    setManualResumeFiles((prev) => prev.filter((_, idx) => idx !== indexToRemove));
+  };
 
   useEffect(() => {
     fetchCandidates();
@@ -138,6 +169,47 @@ export default function RecruiterDashboard() {
     }
   };
 
+  // 🟢 NEW: Transmit manual file streams directly through your Groq AI backend parse loop
+  // 🟢 NEW: Handles direct file processing through the AI pipeline
+  const handleManualCandidateIngestion = async (e) => {
+    e.preventDefault();
+    if (!manualJobId) return alert("Please choose a targeted role opening profile.");
+    if (!manualResumeFiles || manualResumeFiles.length === 0) return alert("Please select at least one valid resume PDF asset to parse.");
+
+    setIsUploadingManual(true);
+    
+    const formDataPayload = new FormData();
+    formDataPayload.append("jobId", manualJobId);
+    
+    // 🟢 FIXED: Append multiple files into your multipart/form-data storage buffer matching your routes rules array
+    manualResumeFiles.forEach(file => {
+      formDataPayload.append("resumes", file);
+    });
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/candidates/upload-direct", formDataPayload, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      
+      if (res.data.success) {
+        alert(`Bulk Ingestion Complete! Successfully screened and injected ${res.data.count || res.data.candidates?.length || 1} candidate profiles into the pipeline target rows!`);
+        
+        // Reset form variables context
+        setManualJobId("");
+        setManualResumeFiles([]);
+        e.target.reset();
+        
+        // Refresh grid metrics dashboard counters instantly
+        fetchCandidates();
+        fetchAnalytics();
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Error occurred while processing and extracting resume data structures.");
+    } finally {
+      setIsUploadingManual(false);
+    }
+  };
   // Recharts colors palette layout mapping
   const CHART_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#94a3b8"];
 
@@ -188,146 +260,303 @@ export default function RecruiterDashboard() {
         {/* -------------------------------------------------------------------------- */}
         {/* SUB-VIEW A: STANDARD METRICS DASHBOARD VIEWPORT                           */}
         {/* -------------------------------------------------------------------------- */}
+      {/* -------------------------------------------------------------------------- */}
+        {/* SUB-VIEW A: STANDARD METRICS DASHBOARD VIEWPORT                           */}
+        {/* -------------------------------------------------------------------------- */}
         {viewMode === "dashboard" && (
           <>
             {/* ANALYTICS HUD SCOREBOARD TOP GRID CARD */}
-{analytics && (
-  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    {[
-      { title: "Total Talent Indexed", count: analytics.totalCandidates, sub: "Unique profiles in grid", action: null },
-      // 🟢 ADDED: Tapping this specific card changes the layout state cleanly
-      { title: "Active Applications", count: analytics.statusDistribution?.["Applied"] || 0, sub: "Awaiting triage (Click to View) ⚡", action: () => setViewMode("jobPipeline") },
-      { title: "Vetted Screenings", count: analytics.statusDistribution?.["Screening"] || 0, sub: "Interactive loop running", action: null },
-      { title: "Hired Conversion", count: analytics.statusDistribution?.["Hired"] || 0, sub: "Pipeline completion rate", action: null }
-    ].map((metric, idx) => (
-      <div 
-        key={idx} 
-        onClick={metric.action ? metric.action : undefined}
-        className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 p-5 rounded-2xl relative shadow-sm overflow-hidden ${metric.action ? "cursor-pointer hover:border-indigo-500 transition-all" : ""}`}
-      >
-        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{metric.title}</p>
-        <p className="text-3xl font-black mt-2 text-slate-900 dark:text-white tracking-tight">{metric.count}</p>
-        <p className="text-[10px] text-slate-500 mt-1">{metric.sub}</p>
-      </div>
-    ))}
-  </div>
-)}
+            {analytics && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+                {[
+                  { title: "Total Talent Indexed", count: analytics.totalCandidates, sub: "Unique profiles in grid", color: "border-l-indigo-500", bg: "bg-indigo-500/5" },
+                  { title: "Active Applications", count: analytics.statusDistribution?.["Applied"] || 0, sub: "Awaiting triage • View Pipeline ⚡", action: () => setViewMode("jobPipeline"), color: "border-l-emerald-500", bg: "bg-emerald-500/5" },
+                  { title: "Vetted Screenings", count: analytics.statusDistribution?.["Screening"] || 0, sub: "Interactive loop running", color: "border-l-amber-500", bg: "bg-amber-500/5" },
+                  { title: "Hired Conversion", count: analytics.statusDistribution?.["Hired"] || 0, sub: "Pipeline completion rate", color: "border-l-rose-500", bg: "bg-rose-500/5" }
+                ].map((metric, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={metric.action ? metric.action : undefined}
+                    className={`bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 border-l-4 ${metric.color} p-6 rounded-2xl relative shadow-xs overflow-hidden transition-all duration-200 ${metric.action ? "cursor-pointer hover:shadow-md hover:scale-[1.01]" : ""}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{metric.title}</p>
+                        <p className="text-3xl font-black mt-2 text-slate-900 dark:text-white tracking-tight font-sans">{metric.count}</p>
+                      </div>
+                      <div className={`p-2 rounded-xl text-xs font-mono font-bold ${metric.bg}`} />
+                    </div>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2 font-medium flex items-center gap-1">{metric.sub}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* TWO-COLUMN PIPELINE DISCOVERY ENGINE */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               
-              {/* CANDIDATE DATA GRID CONTROL */}
-              <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-                  <div>
-                    <h2 className="text-base font-black text-slate-900 dark:text-white tracking-tight">Active Recruitment Streams</h2>
-                    <p className="text-xs text-slate-500">Live monitoring of application progress logs.</p>
-                  </div>
-                  <input 
-                    type="text" 
-                    placeholder="Search candidate index..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-indigo-500 transition-colors w-full sm:w-56"
-                  />
-                </div>
-
-                <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-slate-50 dark:bg-slate-950">
-                        <th className="py-3 px-4">Profile</th>
-                        <th className="py-3 px-4">Role Profile</th>
-                        <th className="py-3 px-4">Current Status</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs text-slate-600 dark:text-slate-300">
-                      {filteredCandidates.map((c) => (
-                        <tr key={c._id} className="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
-                          <td className="py-3.5 px-4">
-                            <button onClick={() => setSelectedCandidate(c)} className="text-left group block">
-                              <p className="font-bold text-slate-900 dark:text-slate-100 group-hover:text-indigo-500 transition-colors">{c.name}</p>
-                              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{c.email}</p>
-                            </button>
-                          </td>
-                          <td className="py-3.5 px-4 font-medium">{c.jobTitle || "Not Configured"}</td>
-                          <td className="py-3.5 px-4">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              c.status === "Hired" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400" :
-                              c.status === "Interviewing" ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-400" :
-                              c.status === "Screening" ? "bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400" :
-                              "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                            }`}>
-                              {c.status || "Applied"}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 text-right">
-                            <button 
-                              onClick={() => {
-                                setSchedulingCandidate(c);
-                                setSchedulingType("choose");
-                              }} 
-                              className="bg-slate-100 hover:bg-indigo-600 dark:bg-slate-800 dark:hover:bg-indigo-600 text-slate-700 dark:text-slate-300 hover:text-white transition-all text-[11px] font-bold px-3 py-1.5 rounded-xl"
-                            >
-                              📅 Dispatch Loop
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {filteredCandidates.length === 0 && (
-                    <p className="text-center py-8 text-xs text-slate-400 italic">No matching candidate footprints found.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* LIVE RECHARTS PIE OVERVIEW REPORT */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm flex flex-col justify-between min-h-[420px]">
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">Talent Matrix Breakdown</h3>
-                  <p className="text-xs text-slate-500">Distribution of candidates across pipeline tiers.</p>
-                </div>
-
-                <div className="h-56 w-full flex items-center justify-center relative my-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={buildStatusDistributionChartData()}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {buildStatusDistributionChartData().map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          background: "#0f172a", 
-                          borderRadius: "12px", 
-                          color: "#fff", 
-                          fontSize: "11px",
-                          border: "1px solid #334155" 
-                        }} 
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 border-t border-slate-100 dark:border-slate-800 pt-4 text-[11px]">
-                  {buildStatusDistributionChartData().map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-400">
-                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
-                      <span className="truncate uppercase tracking-wider text-[10px]">{item.name}: <strong>{item.value}</strong></span>
+              {/* LEFT DASHBOARD COLUMN CONTROLS: MICRO-WIDGETS + SCREEN LIST */}
+              <div className="lg:col-span-2 space-y-6">
+                
+                {/* 🟢 NEW: TELEMETRY OPERATION MICRO-WIDGETS ROW */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-4 text-white shadow-xs flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider opacity-75">Active Open Roles</p>
+                      <h4 className="text-xl font-black mt-1">{jobs.length} Positions</h4>
                     </div>
-                  ))}
+                    <span className="text-xl bg-white/10 p-2 rounded-xl">💼</span>
+                  </div>
+                  
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Interviews Scheduled</p>
+                      <h4 className="text-xl font-black text-slate-800 dark:text-slate-100 mt-1">
+                        {candidates.filter(c => c.status === "Interviewing" || c.status === "Interview Scheduled").length} Pending
+                      </h4>
+                    </div>
+                    <span className="text-xl bg-slate-100 dark:bg-slate-800 p-2 rounded-xl">📅</span>
+                  </div>
+
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-4 rounded-2xl shadow-xs flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vetted Shortlists</p>
+                      <h4 className="text-xl font-black text-emerald-500 mt-1">
+                        {candidates.filter(c => c.status === "Shortlisted").length} Profiles
+                      </h4>
+                    </div>
+                    <span className="text-xl bg-emerald-500/10 p-2 rounded-xl">⚡</span>
+                  </div>
+                </div>
+
+                {/* CANDIDATE DATA GRID CONTROL */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 shadow-xs space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+                    <div>
+                      <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Recent Activity Log</h2>
+                      <p className="text-xs font-medium text-slate-400">Real-time status modifications across candidate pipelines.</p>
+                    </div>
+                    <div className="relative w-full sm:w-64">
+                      <input 
+                        type="text" 
+                        placeholder="Search recent talent..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl outline-none focus:border-indigo-500 focus:bg-white transition-all w-full pl-8 text-slate-700 dark:text-slate-200"
+                      />
+                      <span className="absolute left-3 top-2.5 text-slate-400 text-xs">🔍</span>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-xl border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-950/20">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500 bg-slate-50/70 dark:bg-slate-950">
+                          <th className="py-3.5 px-5">Profile Name</th>
+                          <th className="py-3.5 px-5">Target Role</th>
+                          <th className="py-3.5 px-5">Pipeline State</th>
+                          <th className="py-3.5 px-5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-900 text-xs text-slate-600 dark:text-slate-300">
+                        {/* 🟢 DESIGN UPGRADE: Slit list down to top 5 items dynamically to reduce clutter */}
+                        {filteredCandidates.slice(0, 5).map((c) => (
+                          <tr key={c._id} className="hover:bg-indigo-50/20 dark:hover:bg-slate-900/40 transition-colors group">
+                            <td className="py-4 px-5">
+                              <button onClick={() => setSelectedCandidate(c)} className="text-left block focus:outline-none">
+                                <p className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{c.name}</p>
+                                <p className="text-[10px] text-slate-400 font-mono mt-0.5">{c.email}</p>
+                              </button>
+                            </td>
+                            <td className="py-4 px-5 font-medium text-slate-700 dark:text-slate-300">{c.jobTitle || "Pooling"}</td>
+                            <td className="py-4 px-5">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${
+                                c.status === "Hired" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400" :
+                                c.status === "Interviewing" ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-500/10 dark:text-indigo-400" :
+                                c.status === "Screening" ? "bg-amber-100 text-amber-800 dark:bg-amber-500/10 dark:text-amber-400" :
+                                "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                              }`}>
+                                ● {c.status || "Applied"}
+                              </span>
+                            </td>
+                            <td className="py-4 px-5 text-right">
+                              <button 
+                                onClick={() => {
+                                  setSchedulingCandidate(c);
+                                  setSchedulingType("choose");
+                                }} 
+                                className="bg-slate-50 border border-slate-200 dark:border-slate-800 hover:bg-indigo-600 dark:hover:bg-indigo-600 text-slate-700 dark:text-slate-300 hover:text-white transition-all text-[11px] font-bold px-3 py-1.5 rounded-xl shadow-2xs"
+                              >
+                                📅 Dispatch
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    
+                    {/* 🟢 DESIGN UPGRADE: Persistent navigation anchor block to dive deep into explicit paths */}
+                    {filteredCandidates.length > 5 && (
+                      <div className="p-3 bg-slate-50 dark:bg-slate-950/40 text-center border-t border-slate-100 dark:border-slate-800">
+                        <button 
+                          onClick={() => setViewMode("jobPipeline")}
+                          className="text-indigo-600 dark:text-indigo-400 text-xs font-bold hover:underline"
+                        >
+                          View All {filteredCandidates.length} Active Candidates Inside Main Folders →
+                        </button>
+                      </div>
+                    )}
+
+                    {filteredCandidates.length === 0 && (
+                      <div className="text-center py-12 text-xs text-slate-400 italic">No matching candidate records found.</div>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* RIGHT COLUMN WRAPPER: EXPANDED AND UPGRADED CONTAINER SIZES */}
+              <div className="space-y-6 min-w-0 lg:col-span-1">
+                
+                {/* UPGRADED: ENHANCED PROFILE INGESTION COMPONENT */}
+                <form onSubmit={handleManualCandidateIngestion} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm text-left space-y-5">
+                  <div>
+                    <h3 className="text-sm font-black uppercase text-indigo-600 dark:text-indigo-400 tracking-wider">Internal Profile Ingestion</h3>
+                    <p className="text-xs text-slate-400 mt-1">Bypass secondary candidate interfaces to directly sync resume batches using Groq AI.</p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Target Role Opening</label>
+                    <select
+                      value={manualJobId}
+                      required
+                      onChange={(e) => setManualJobId(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs rounded-xl p-3 outline-none font-semibold text-slate-700 dark:text-slate-300 focus:border-indigo-500 focus:bg-white transition-all"
+                    >
+                      <option value="">-- Choose Targeted Vacancy Node --</option>
+                      {jobs.map((job) => (
+                        <option key={job._id} value={job._id}>{job.title} [{job.department || "General"}]</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* HIGH-STANDARD RESUME SELECTOR WORKSPACE GRID */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Attach Resumes (PDF Format)</label>
+                    
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      multiple
+                      ref={fileInputRef}
+                      onChange={handleFileAppend}
+                      className="hidden"
+                    />
+
+                    {(!manualResumeFiles || manualResumeFiles.length === 0) ? (
+                      <div 
+                        onClick={() => fileInputRef.current.click()}
+                        className="w-full border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-6 bg-slate-50/50 dark:bg-slate-950/20 hover:bg-slate-50 dark:hover:bg-slate-950 text-center cursor-pointer transition-colors group"
+                      >
+                        <span className="text-xl block mb-1 group-hover:scale-110 transition-transform">📄</span>
+                        <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400">Click to Browse Resumes</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Supports multi-file selection batches</p>
+                      </div>
+                    ) : (
+                      <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50/40 dark:bg-slate-950/20 space-y-2">
+                        <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+                          {manualResumeFiles.map((file, idx) => (
+                            <div key={idx} className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 px-3 py-2 rounded-xl text-xs shadow-3xs">
+                              <div className="flex items-center gap-2 truncate max-w-[85%]">
+                                <span className="text-slate-400">📎</span>
+                                <span className="font-medium text-slate-700 dark:text-slate-300 truncate">{file.name}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveFileItem(idx)}
+                                className="w-5 h-5 flex items-center justify-center bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 rounded-full text-[10px] font-bold transition-colors"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current.click()}
+                          className="w-full py-2 bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 hover:border-indigo-400 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all shadow-3xs"
+                        >
+                          <span>➕</span> Add More Resumes
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ACTIVE AI PROCESSING STEP PROGRESS BAR SYSTEM */}
+                  {isUploadingManual && (
+                    <div className="space-y-1.5 animate-fadeIn bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/40 p-3 rounded-xl">
+                      <div className="flex justify-between text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping" />
+                          Groq AI Extracting Text Vector Layers...
+                        </span>
+                        <span>Active Tracking</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full w-full rounded-full animate-[shimmer_2s_infinite] bg-[length:200%_100%]" style={{ backgroundImage: "linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #6366f1 100%)" }} />
+                      </div>
+                      <p className="text-[10px] text-slate-400">Please maintain this dashboard window connection until transmission is confirmed.</p>
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isUploadingManual || !manualResumeFiles || manualResumeFiles.length === 0}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+                  >
+                    {isUploadingManual ? "🧬 Parsing Selection Pool..." : `Ingest ${manualResumeFiles?.length || 0} Candidate Profiles`}
+                  </button>
+                </form>
+
+                {/* LIVE RECHARTS PIE OVERVIEW REPORT */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 rounded-3xl p-6 shadow-sm flex flex-col justify-between h-[420px] relative min-w-0 overflow-hidden">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">Talent Matrix Breakdown</h3>
+                    <p className="text-xs text-slate-500">Distribution of candidates across pipeline tiers.</p>
+                  </div>
+
+                  <div className="h-52 w-full relative my-2 min-w-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={buildStatusDistributionChartData()}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={75}
+                          paddingAngle={4}
+                          dataKey="value"
+                        >
+                          {buildStatusDistributionChartData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip contentStyle={{ background: "#0f172a", borderRadius: "12px", color: "#fff", fontSize: "11px", border: "1px solid #334155" }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 border-t border-slate-100 dark:border-slate-800 pt-4 text-[11px]">
+                    {buildStatusDistributionChartData().map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-400">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }} />
+                        <span className="truncate uppercase tracking-wider text-[10px]">{item.name}: <strong>{item.value}</strong></span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div> {/* END RIGHT COLUMN */}
 
             </div>
           </>
@@ -360,7 +589,7 @@ export default function RecruiterDashboard() {
         localStorage.setItem("selectedJobId", job._id);
         
         // 2. Go to the separate pipeline page route
-        window.location.href = "/recruiter/pipeline";
+        window.location.href = "/recruiter/pipeline"
       }}
                     className="border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 p-5 rounded-2xl cursor-pointer hover:border-indigo-500/60 dark:hover:border-indigo-500/60 transition-all shadow-sm space-y-3 group"
                   >
@@ -393,17 +622,9 @@ export default function RecruiterDashboard() {
         {/* -------------------------------------------------------------------------- */}
         {viewMode === "jobPipeline" && (
           <div className="space-y-6 animate-fadeIn">
-            <div className="flex items-center justify-between">
-              <button 
-                onClick={() => { setViewMode("dashboard"); setSelectedJob(null); }}
-                className="text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 px-3.5 py-1.5 rounded-xl transition-colors text-slate-500 dark:text-slate-300"
-              >
-                ← Back to Core Dashboard
-              </button>
-              <span className="text-xs font-mono font-bold text-indigo-400 uppercase">DRILLDOWN MATRIX PIPELINE</span>
-            </div>
+           
 
-            {/* INTERACTIVE OPEN JOB CARDS SELECTION WRAPPER */}
+            INTERACTIVE OPEN JOB CARDS SELECTION WRAPPER
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {jobs.map((job) => {
                 const totalLinkedCandidates = candidates.filter(c => c.jobId === job._id || c.jobTitle?.toLowerCase() === job.title?.toLowerCase()).length;
@@ -414,6 +635,7 @@ export default function RecruiterDashboard() {
                     onClick={() => {
                         setSelectedJob(job);
                         setSelectedJobId(job._id); // 🟢 Forces the backend filter ID to activate when tapped!
+                        navigate(`/recruiter/pipeline/${job._id}`);
                       }}
                     className={`p-5 rounded-2xl border transition-all cursor-pointer ${
                       isCurrentSelection 
@@ -435,7 +657,7 @@ export default function RecruiterDashboard() {
               })}
             </div>
 
-            {/* DETAILED APPLICANT MATRIX SHEET FOR SELECTED CARD */}
+            DETAILED APPLICANT MATRIX SHEET FOR SELECTED CARD
             {selectedJob && (
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm animate-fadeIn">
                 <h3 className="text-base font-black text-slate-900 dark:text-white tracking-tight">{selectedJob.title} Application Ledger</h3>
@@ -558,11 +780,15 @@ export default function RecruiterDashboard() {
   ⚡ Grade Match
 </button>
         <button 
-          onClick={() => { setSchedulingCandidate(c); if (typeof setSchedulingType === "function") setSchedulingType("choose"); }}
-          className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-1 rounded-lg"
-        >
-          📅 Route Flow
-        </button>
+  onClick={() => { 
+    setSchedulingCandidate(c); 
+    setSchedulingType("choose");
+    setSchedulingMode("configure"); // 🟢 Switches view mode configuration on click
+  }}
+  className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold px-2 py-1 rounded-lg"
+>
+  📅 Route Flow
+</button>
       </td>
     </tr>
 ))}

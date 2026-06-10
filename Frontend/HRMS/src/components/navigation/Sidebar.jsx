@@ -23,11 +23,7 @@ const menuItems = [
     path: "/recruiter/pipeline",
   },
   
-  {
-    title: "Recruitment",
-    icon: Briefcase,
-    path: "/recruiter/recruitment",
-  },
+  
   {
     title: "Interviews", 
     icon: Video,

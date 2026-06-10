@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, FileText, CheckCircle2, User, LogOut, Camera, DollarSign, Check, X, ClipboardList, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react'; // 💡 FIXED: Added missing useRef hook import
+import { Clock, Calendar, FileText, CheckCircle2, User, LogOut, Camera, DollarSign, Check, X, ClipboardList, AlertCircle, RefreshCw, Video } from 'lucide-react';
 import PayrollLedger from './Payroll'; 
 import AttendanceHub from "./AttendanceHub";
 import EmployeeNotification from './EmployeeNotification';
 import EmployeeTaskPortal from './EmployeeTaskPortal';
 import axios from 'axios'; 
 import LeaveRequestPortal from "./LeaveRequestPortal";
+import { io } from "socket.io-client";
 
 const EmployeeDashboard = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -13,7 +14,12 @@ const EmployeeDashboard = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isStatusSelectorOpen, setIsStatusSelectorOpen] = useState(false);
   
- 
+  // 💡 FIXED: Added missing states for profile error checking and attendance logs
+  const [profileSuccess, setProfileSuccess] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [attendanceLogs, setAttendanceLogs] = useState([]);
+
   const [user, setUser] = useState({
     _id: "",
     name: "Employee",
@@ -25,13 +31,11 @@ const EmployeeDashboard = () => {
     avatarUrl: null
   });
 
-
   useEffect(() => {
     try {
       const token = localStorage.getItem("fwc_token");
       if (!token) return;
 
-      // Unpack base64 signature layout safely
       const base64Url = token.split('.')[1];
       const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
       const payload = JSON.parse(window.atob(base64));
@@ -48,11 +52,10 @@ const EmployeeDashboard = () => {
       };
 
       setUser(identityState);
-      setFormData(identityState); // Syncs your profile form state too!
+      setFormData(identityState); 
     } catch (error) {
       console.error("Failed parsing employee identity configuration token details:", error);
       
-      // Fallback to local user object if token fails
       const savedUser = localStorage.getItem("fwc_user");
       if (savedUser) {
         try {
@@ -76,17 +79,11 @@ const EmployeeDashboard = () => {
     }
   }, []);
 
-  // Temporary form state to hold edits before clicking "Save"
   const [formData, setFormData] = useState({ ...user });
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
-  
-  // --- 🛠️ FEATURE 2: EXPANDED ROUTING SYSTEM ---
-  // Options: "dashboard", "profile", "attendance", "leaves", "payroll", "tasks"
   const [activeTab, setActiveTab] = useState("dashboard");
   
-  
-  // Mock Data for Leave Requests history & Leave limits
   const [leaveBalances, setLeaveBalances] = useState({ annual: 14, annualMax: 18, sick: 6, sickMax: 8 });
   const [leaveRequests, setLeaveRequests] = useState([
     { id: 1, type: "Annual Leave", start: "2026-07-10", end: "2026-07-14", days: 4, status: "Approved" },
@@ -94,7 +91,6 @@ const EmployeeDashboard = () => {
   ]);
   const [newLeave, setNewLeave] = useState({ type: "Annual Leave", start: "", end: "", days: 1 });
 
-  // --- 📋 NEW SYSTEM STATE FOR REAL-TIME TASKS PORTAL ---
   const [tasks, setTasks] = useState([]);
   const [isTasksLoading, setIsTasksLoading] = useState(false);
   const [tasksError, setTasksError] = useState("");
@@ -108,22 +104,17 @@ const EmployeeDashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Sync temporary state whenever the active profile panel opens
   useEffect(() => {
     if (activeTab === "profile") {
       setFormData({ ...user });
     }
   }, [activeTab, user]);
 
-  // Fetch individual tasks mapped specifically to this employee
-  // Fetch individual tasks mapped specifically to this employee
   const fetchEmployeeTasks = async () => {
     setIsTasksLoading(true);
     setTasksError("");
     try {
       const token = localStorage.getItem("fwc_token");
-      
-      // Grab the user object or ID out of the active user session state
       const targetEmpId = user.employee_id || user._id;
 
       if (!targetEmpId) {
@@ -132,7 +123,6 @@ const EmployeeDashboard = () => {
         return;
       }
 
-      // 📡 Pass the employee ID as a query string parameter (?empId=...) to satisfy the backend check!
       const response = await axios.get(`http://localhost:5000/api/tasks/my-tasks?empId=${targetEmpId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -151,12 +141,10 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // Fetch tasks on initial component layout and whenever tab switches over to tasks
   useEffect(() => {
     fetchEmployeeTasks();
   }, [activeTab]);
 
-  // Update status changes directly across the workspace database
   const handleUpdateTaskStatus = async (taskId, nextStatus) => {
     setUpdatingTaskId(taskId);
     try {
@@ -216,8 +204,12 @@ const EmployeeDashboard = () => {
     }
   };
 
+  // 💡 FIXED: Updated profile submit loop to safely interact with form loading indicators
   const handleProfileSave = async (e) => {
     e.preventDefault();
+    setIsUpdatingProfile(true);
+    setProfileError("");
+    setProfileSuccess(false);
     try {
       const token = localStorage.getItem("fwc_token");
       const response = await axios.put(
@@ -229,9 +221,7 @@ const EmployeeDashboard = () => {
           address: formData.address,
           avatarUrl: formData.avatarUrl,
         },
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data && response.data.success) {
         setUser({ ...formData });
@@ -241,12 +231,15 @@ const EmployeeDashboard = () => {
           const updatedPackage = { ...parsed, ...formData };
           localStorage.setItem("fwc_user", JSON.stringify(updatedPackage));
         }
+        setProfileSuccess(true);
         alert("Profile permanently saved to Database!");
         setActiveTab("dashboard");
       }
     } catch (error) {
       console.error("Database Save Error:", error);
-      alert(error.response?.data?.message || "Failed to update profile in database.");
+      setProfileError(error.response?.data?.message || "Failed to update profile in database.");
+    } finally {
+      setIsUpdatingProfile(false);
     }
   };
 
@@ -293,7 +286,6 @@ const EmployeeDashboard = () => {
               <User size={18} /> My Dashboard
             </button>
             
-            {/* 📋 TASKS ROUTER OPTION */}
             <button 
               onClick={() => setActiveTab("tasks")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
@@ -302,7 +294,18 @@ const EmployeeDashboard = () => {
                   : isDarkMode ? "text-slate-400 hover:bg-slate-900" : "text-slate-600 hover:bg-slate-50"
               }`}
             >
-              <ClipboardList size={18} /> My Tasks Portal
+              <ClipboardList size={18} /> My Tasks 
+            </button>
+
+            <button 
+              onClick={() => setActiveTab("meetings")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                activeTab === "meetings" 
+                  ? "bg-blue-600 text-white shadow-md" 
+                  : isDarkMode ? "text-slate-400 hover:bg-slate-900" : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <Video size={18} /> My Media Desk
             </button>
 
             <button 
@@ -326,12 +329,12 @@ const EmployeeDashboard = () => {
               <DollarSign size={18} /> My Payroll
             </button>
             <button 
-             onClick={() => setActiveTab("leaves")} // 👈 Right here on line 84!
-             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-               activeTab === "leaves" ? "bg-blue-600 text-white shadow-md" : isDarkMode ? "text-slate-400 hover:bg-slate-900" : "text-slate-600 hover:bg-slate-50"
-             }`}
-           >
-             <FileText size={18} /> Leave Requests
+              onClick={() => setActiveTab("leaves")} 
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+                activeTab === "leaves" ? "bg-blue-600 text-white shadow-md" : isDarkMode ? "text-slate-400 hover:bg-slate-900" : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <FileText size={18} /> Leave Requests
             </button>
           </nav>
         </div>
@@ -360,7 +363,6 @@ const EmployeeDashboard = () => {
               </p>
             </div>
 
-            {/* Notification system hook */}
             <EmployeeNotification currentEmployeeId={user?.employee_id} />
 
             <div className="relative">
@@ -530,9 +532,15 @@ const EmployeeDashboard = () => {
             </div>
           </div>
         )}
-{/* SCREEN 2: TASKS PORTAL VIEW */}
-{activeTab === "tasks" && user._id && (
+
+        {/* SCREEN 2: TASKS PORTAL VIEW */}
+        {activeTab === "tasks" && user._id && (
           <EmployeeTaskPortal user={user} />
+        )}
+
+        {/* SCREEN EXTRA: WEBRTC MEDIA DESK */}
+        {activeTab === "meetings" && user.employee_id && (
+          <EmployeeMeetingDesk user={user} isDarkMode={isDarkMode} />
         )}
 
         {/* SCREEN 3: PROFILE */}
@@ -561,7 +569,8 @@ const EmployeeDashboard = () => {
 
             <div className={`md:col-span-2 p-6 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
               <h3 className="text-sm font-bold mb-4">Profile Synchronization Fields</h3>
-              <form onSubmit={handleUpdateProfile} className="space-y-4 text-left">
+              {/* 💡 FIXED: Replaced loose form variables with mapped formData attributes safely */}
+              <form onSubmit={handleProfileSave} className="space-y-4 text-left">
                 {profileSuccess && (
                   <div className="p-3 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-xl border border-emerald-200 flex items-center gap-2">
                     <CheckCircle2 size={14} /> Profile fields successfully synced to database.
@@ -575,19 +584,19 @@ const EmployeeDashboard = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 block mb-1">Full Name Reference</label>
-                    <input type="text" value={profileForm.name} onChange={(e) => setProfileForm({...profileForm, name: e.target.value})} className="w-full px-3 py-2 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-900/50" />
+                    <input type="text" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full px-3 py-2 text-xs rounded-xl border bg-slate-50/50 dark:bg-slate-900/50" />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 block mb-1">Corporate Email Address</label>
-                    <input type="email" value={profileForm.email} className="w-full px-3 py-2 text-xs rounded-xl border bg-slate-100 text-slate-400 dark:bg-slate-900/80 cursor-not-allowed" disabled />
+                    <input type="email" value={formData.email} className="w-full px-3 py-2 text-xs rounded-xl border bg-slate-100 text-slate-400 dark:bg-slate-900/80 cursor-not-allowed" disabled />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 block mb-1">Secure Contact Number</label>
-                    <input type="text" value={profileForm.phone} onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})} className="w-full px-3 py-2 text-xs rounded-xl border dark:bg-slate-900" />
+                    <input type="text" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full px-3 py-2 text-xs rounded-xl border dark:bg-slate-900" />
                   </div>
                   <div>
                     <label className="text-[11px] font-bold text-slate-400 block mb-1">Physical Residential Node Address</label>
-                    <input type="text" value={profileForm.address} onChange={(e) => setProfileForm({...profileForm, address: e.target.value})} className="w-full px-3 py-2 text-xs rounded-xl border dark:bg-slate-900" />
+                    <input type="text" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="w-full px-3 py-2 text-xs rounded-xl border dark:bg-slate-900" />
                   </div>
                 </div>
                 <div className="pt-2">
@@ -607,8 +616,8 @@ const EmployeeDashboard = () => {
 
         {/* SCREEN 5: LEAVES */}
         {activeTab === "leaves" && (
-  <LeaveRequestPortal user={user} isDarkMode={isDarkMode} />
-)}
+          <LeaveRequestPortal user={user} isDarkMode={isDarkMode} />
+        )}
 
         {/* SCREEN 6: PAYROLL */}
         {activeTab === "payroll" && (
@@ -620,5 +629,138 @@ const EmployeeDashboard = () => {
     </div>
   );
 };
+
+function EmployeeMeetingDesk({ user, isDarkMode }) {
+  const [meetings, setMeetings] = useState([]);
+  const [activeCallId, setActiveCallId] = useState(null);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const [streamInstance, setStreamInstance] = useState(null);
+
+  // 🟢 WebRTC Live Signaling Client Object References
+  const socketRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const iceServersConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+  const fetchRooms = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/meetings/employee/${user.employee_id}`);
+      if (res.data.success) setMeetings(res.data.meetings);
+    } catch (e) { console.error(e); }
+  };
+
+  useEffect(() => { fetchRooms(); const loop = setInterval(fetchRooms, 10000); return () => clearInterval(loop); }, [user]);
+
+  // 🟢 Captures webcam & hooks the incoming offer/answer pipeline
+  const launchNativeMediaTracks = async (roomId) => {
+    try {
+      setActiveCallId(roomId);
+
+      // 1. Instantly connect to backend WebSocket gateway
+      socketRef.current = io("http://localhost:5000");
+
+      // 2. Spin up native hardware trackers
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setStreamInstance(stream);
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
+      // 3. Spin up local WebRTC connection stack
+      peerConnectionRef.current = new RTCPeerConnection(iceServersConfig);
+      stream.getTracks().forEach(track => peerConnectionRef.current.addTrack(track, stream));
+
+      peerConnectionRef.current.ontrack = (event) => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = event.streams[0];
+        }
+      };
+
+      peerConnectionRef.current.onicecandidate = (event) => {
+        if (event.candidate) {
+          socketRef.current.emit("ice-candidate", { roomId, candidate: event.candidate });
+        }
+      };
+
+      // 4. Respond directly to the Manager browser's session parameters
+      socketRef.current.on("incoming-offer", async (sdp) => {
+        await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(sdp));
+        const answer = await peerConnectionRef.current.createAnswer();
+        await peerConnectionRef.current.setLocalDescription(answer);
+        socketRef.current.emit("video-answer", { roomId, sdp: answer });
+      });
+
+      socketRef.current.on("incoming-ice-candidate", async (candidate) => {
+        if (peerConnectionRef.current) {
+          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+      });
+
+      socketRef.current.emit("join-room", roomId);
+
+    } catch (err) {
+      console.error(err);
+      alert("Could not initialize local optical media hardware.");
+    }
+  };
+
+  const endNativeCallLoop = () => {
+    if (streamInstance) streamInstance.getTracks().forEach(t => t.stop());
+    if (peerConnectionRef.current) peerConnectionRef.current.close();
+    if (socketRef.current) socketRef.current.disconnect();
+    setStreamInstance(null);
+    setActiveCallId(null);
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in duration-200 text-left">
+      <div>
+        <h2 className="text-xl font-black tracking-tight">My Media Operations Desk</h2>
+        <p className="text-xs font-medium text-slate-400 mt-0.5">Secure, native communication room matrix connected to your cluster group.</p>
+      </div>
+
+      {!activeCallId ? (
+        <div className="bg-white rounded-2xl border border-slate-200/60 p-5 space-y-3">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Available Group Streams</p>
+          {meetings.length === 0 ? (
+            <div className="text-center py-12 text-xs italic text-slate-400 border border-dashed rounded-xl">No active channels or call requests flagged for your department.</div>
+          ) : (
+            meetings.map(m => (
+              <div key={m._id} className="p-4 bg-slate-50 rounded-xl flex items-center justify-between border border-slate-100">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800">{m.title}</h4>
+                  <p className="text-xs text-slate-400 mt-0.5">Hosted by Manager: {m.managerName} ({m.department})</p>
+                </div>
+                <button onClick={() => launchNativeMediaTracks(m.roomId)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition-colors">
+                  Join Call Now
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900 border border-slate-800 p-6 rounded-3xl relative">
+          <div className="absolute top-4 left-4 bg-red-600 text-white text-[9px] font-mono tracking-widest uppercase font-bold px-2.5 py-0.5 rounded-full z-20 animate-pulse">
+            • Live Native Internal Link Active
+          </div>
+
+          <div className="bg-slate-950 rounded-2xl overflow-hidden aspect-video relative border border-slate-800 flex items-center justify-center">
+            <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover transform -scale-x-100" />
+            <span className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-[10px] font-mono font-bold text-slate-300 px-2 py-0.5 rounded border border-slate-800">My Video (Local Source)</span>
+          </div>
+
+          <div className="bg-slate-950 rounded-2xl overflow-hidden aspect-video relative border border-slate-800 flex items-center justify-center">
+            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            <span className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-[10px] font-mono font-bold text-slate-300 px-2 py-0.5 rounded border border-slate-800 z-20">Manager Feed (Remote Asset)</span>
+          </div>
+
+          <div className="md:col-span-2 flex justify-center border-t border-slate-800/80 pt-4 mt-2">
+            <button onClick={endNativeCallLoop} className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl uppercase tracking-wider shadow-lg">
+              Disconnect from Stream
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default EmployeeDashboard;

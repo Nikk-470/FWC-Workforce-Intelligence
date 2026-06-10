@@ -25,17 +25,26 @@ export default function AIInterviewConfigModal({ candidate, onClose, onDeploymen
       const [parsedDate, parsedTime] = configData.date.split("T");
 
       const res = await axios.post("http://localhost:5000/api/interviews/schedule", {
-        candidateId: candidate._id,
-        date: parsedDate,               // Just "YYYY-MM-DD"
-        time: parsedTime || "10:00",    // Just "HH:MM"
-        type: `${configData.type} (${configData.difficulty})`,
-        link: `http://localhost:5173/ai-room/${candidate._id}`, // Generate the frontend path explicitly
-        mode: "ai",
-        // 🟢 SYNCED PARAMETERS: Sent straight to the atomic database router
-        difficulty: configData.difficulty,
-        duration: configData.duration,
-        focusSkills: configData.focusSkills
-      });
+  // 🟢 1. Top-Level Identity Fields (Fixes the 400 error!)
+  candidateId: candidate._id,
+  name: candidate.name,
+  email: candidate.email,
+  jobId: candidate.jobId || null,
+  mode: "ai",
+
+  // 🟢 2. Custom Engine Config Trackers
+  time: parsedTime || "10:00",
+  difficulty: configData.difficulty,
+  duration: configData.duration,
+  focusSkills: configData.focusSkills,
+
+  // 🟢 3. Nested Object Structure (Matches backend destructuring!)
+  interviewDetails: {
+    date: parsedDate, // "YYYY-MM-DD"
+    type: `${configData.type} (${configData.difficulty})`,
+    link: `http://localhost:5173/interview/session/${candidate._id}` // Aligned with your system route mapping (/:token)
+  }
+});
 
       if (res.data?.success) {
         alert(`AI Examination engine queued successfully. Alert email dispatched to ${candidate.name}.`);

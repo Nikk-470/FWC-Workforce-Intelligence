@@ -6,6 +6,7 @@ const OpenAI = require("openai");
 const nodemailer = require('nodemailer');
 const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
 
 
 // 🟢 Explicitly import your database models
@@ -15,6 +16,7 @@ const Interview = require('../models/Interview');
 const screeningRules = require('../config/aiScreeningRules');
 // 🔒 ISOLATION LAYER: Set up a dedicated local directory pathway for Job Descriptions
 const jobUploadDir = path.join(__dirname, "../upload/jds");
+
 
 // Automatically ensure the directory exists so your application server doesn't crash
 if (!fs.existsSync(jobUploadDir)) {
@@ -164,65 +166,87 @@ router.post('/candidates/apply-public', async (req, res) => {
 /* ==========================================================================
    ENDPOINT 3: RECRUITER DIRECT UPLOAD DROPZONE (GROQ AI AUTOMATION PARSE)
    ========================================================================== */
-router.post('/candidates/upload-direct', uploadHandler.single('resume'), async (req, res) => {
+// backend/src/routes/recruitmentRoutes.js (or recruitemnetroute.js)
+
+// 📡 POST: BULK INTERNAL RESUME SCREENING & EXTRACTION ENGINE
+// 📡 POST: BULK INTERNAL RESUME SCREENING & EXTRACTION ENGINE
+router.post('/candidates/upload-direct', uploadHandler.array('resumes', 20), async (req, res) => {
   try {
     const { jobId } = req.body;
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "No document file detected in transaction." });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: "No document files detected." });
     }
 
     let targetJobTitle = "General Pooling";
-    if (jobId) {
+    if (jobId && mongoose.Types.ObjectId.isValid(jobId)) {
       const activeJob = await Job.findById(jobId);
       if (activeJob) targetJobTitle = activeJob.title;
     }
 
-    const parsedPdfResult = await pdfParse(req.file.buffer);
-    const rawResumeText = parsedPdfResult.text;
+    // 🟢 HELPER: Creates a clean sleep interval delay
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-    // 🟢 FIXED: Changed variable name from groqInstance to client to match your file's configuration definition
-    const aiModelCompletion = await client.chat.completions.create({
-      model: "llama3-8b-8192",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert recruitment parser system tool. Your job is to extract applicant structural specifications from raw resume strings. You MUST return data strictly as a single, valid JSON object with keys: 'name', 'email', 'phone', and 'matchScoreOutof100'. Do not append conversational summaries or introductory lines."
-        },
-        {
-          role: "user",
-          content: `Extract values from this text data block:\n\n${rawResumeText}`
+    const processedCandidates = [];
+    const executionErrors = [];
+
+    for (const file of req.files) {
+      try {
+        // 🟢 FIXED: Give the Groq API a 1.5-second breather before firing the next file request
+        if (processedCandidates.length > 0) {
+          await sleep(1500); 
         }
-      ],
-      response_format: { type: "json_object" }
+
+        const parsedPdfResult = await pdfParse(file.buffer);
+        const rawResumeText = parsedPdfResult.text;
+
+        const aiModelCompletion = await client.chat.completions.create({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            {
+              role: "system",
+              content: "You are an expert recruitment parser system tool. Your job is to extract applicant structural specifications from raw resume strings. You MUST return data strictly as a single, valid JSON object with keys: 'name', 'email', 'phone', and 'matchScoreOutof100'."
+            },
+            { role: "user", content: `Extract values from this text data block:\n\n${rawResumeText}` }
+          ],
+          response_format: { type: "json_object" }
+        });
+
+        let cleanJsonString = aiModelCompletion.choices[0].message.content.trim();
+        if (cleanJsonString.startsWith("```")) {
+          cleanJsonString = cleanJsonString.replace(/^```json/, "").replace(/```$/, "").trim();
+        }
+
+        const extractedData = JSON.parse(cleanJsonString);
+
+        const automatedCandidate = new Candidate({
+          name: extractedData.name || file.originalname.replace(".pdf", ""),
+          email: extractedData.email || "unresolved_email@company.com",
+          phone: extractedData.phone || "",
+          jobId: jobId || null,
+          jobTitle: targetJobTitle,
+          status: 'Shortlisted', 
+          aiScore: extractedData.matchScoreOutof100 ? (extractedData.matchScoreOutof100 / 10) : 7.5
+});
+      
+
+        await automatedCandidate.save();
+        processedCandidates.push(automatedCandidate);
+      } catch (fileErr) {
+        console.error(`Failed parsing individual asset file node ${file.originalname}:`, fileErr);
+        executionErrors.push({ file: file.originalname, message: fileErr.message });
+      }
+    }
+
+    return res.status(201).json({ 
+      success: true, 
+      count: processedCandidates.length,
+      candidates: processedCandidates,
+      errors: executionErrors 
     });
-
-    const extractedData = JSON.parse(aiModelCompletion.choices[0].message.content);
-
-    const automatedCandidate = new Candidate({
-      name: extractedData.name || "Unknown Candidate Name",
-      email: extractedData.email || "unresolved_email@company.com",
-      phone: extractedData.phone || "",
-      jobId: jobId || null,
-      jobTitle: targetJobTitle,
-      status: 'Shortlisted', 
-      aiScore: extractedData.matchScoreOutof100 || 75
-    });
-
-    await automatedCandidate.save();
-    return res.status(201).json({ success: true, candidate: automatedCandidate });
 
   } catch (err) {
-    console.error("Critical failure during backend direct Groq operation validation loop:", err);
+    console.error(err);
     return res.status(500).json({ success: false, message: "Internal server extraction processing breakdown." });
-  }
-});
-
-router.get('/candidates', async (req, res) => {
-  try {
-    const applicantRoster = await Candidate.find().sort({ createdAt: -1 });
-    return res.status(200).json(applicantRoster);
-  } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
   }
 });
 

@@ -1,5 +1,6 @@
 import React from "react";
-import { Layers, Users, CheckSquare, Menu, X, LogOut, ShieldAlert, ClipboardList } from "lucide-react"; // 🚀 Added ClipboardList for leaves!
+// 🟢 FIXED: Added 'Video' to the icon imports line below
+import { Layers, Users, CheckSquare, Menu, X, LogOut, ShieldAlert, ClipboardList, Video } from "lucide-react"; 
 
 export default function SMSidebar({
   isSidebarVisible,
@@ -10,12 +11,13 @@ export default function SMSidebar({
   currentSelectedTeam
 }) {
   
-  // 📜 Mapped "leave-triage" perfectly into your main workflow tracker array
+  // 📜 Mapped choices perfectly into your main workflow tracker array
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: Layers },
     { id: "teamDeck", label: "Team Clusters", icon: Users },
     { id: "taskDeck", label: "Sprint Planner", icon: CheckSquare },
-    { id: "leave-triage", label: "Leave Requests", icon: ClipboardList }, // 🚀 New operational lane!
+    { id: "leave-triage", label: "Leave Requests", icon: ClipboardList }, 
+    { id: "meetings", label: "Video Meetings", icon: Video }, // 🚀 New Room Portal option mapped cleanly
   ];
 
   const handleLogout = () => {
@@ -75,7 +77,6 @@ export default function SMSidebar({
                 key={item.id}
                 onClick={() => {
                   setActiveView(item.id);
-                  // Auto-collapse sidebar on smaller layouts after select
                   if (window.innerWidth < 1024) setIsSidebarVisible(false);
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-xl transition-all ${

@@ -8,6 +8,7 @@ const CandidateSchema = new mongoose.Schema({
   jobId: { type: mongoose.Schema.Types.ObjectId, ref: 'Job', required: false },
   jobTitle: { type: String, default: 'General Pooling' },
   resumeUrl: { type: String, default: '' },
+  resumePdfRawUrl: { type: String, default: '' },
   status: { 
     type: String, 
     // 🟢 Preserved your exact selection rules intact for downstream processes

@@ -37,7 +37,9 @@ router.get("/", async (req, res) => {
 // ==========================================================
 const processApplicationPipeline = async (req, res) => {
   try {
-    console.log("📥 Carrier Request Body Map:", req.body);
+    
+    console.log("📥 Body:", req.body);
+  console.log("📥 File:", req.file);
     const { jobId, name, email, phone } = req.body;
     const file = req.file || (req.files && req.files[0]);
 
@@ -170,10 +172,14 @@ const evaluateMatchHandler = async (req, res) => {
       }
     }
 
+    // 🟢 REPLACE YOUR OLD FALLBACK LOGIC WITH THIS NEW CHECK:
     if (!resumeText || resumeText.trim().length === 0) {
-      resumeText = `Candidate Name: ${candidate.name}\nLogged Background Context: ${candidate.experience || ''}\nStated Skills: ${candidate.skills?.join(', ') || ''}`;
+      console.error("DEBUG: Resume content is empty for candidate:", candidate.name);
+      return res.status(400).json({ 
+        success: false, 
+        message: "No resume data found for this candidate to analyze. Ensure the PDF was uploaded correctly." 
+      });
     }
-
     const { analyzeResume } = require("../services/aiService"); 
     const rawAiResponse = await analyzeResume(resumeText, jobRequirementsText);
     
@@ -224,7 +230,8 @@ const evaluateMatchHandler = async (req, res) => {
 // 🛣️ EXPRESS ROUTE REGISTRATIONS
 // ==========================================================
 router.post("/", multerTrap, processApplicationPipeline);
-router.post("/apply-public", multerTrap, processApplicationPipeline);
+// In candidateRoutes.js - REPLACE the route registration with this:
+router.post("/apply-public", upload.single("resume"), processApplicationPipeline);
 
 // 🟢 FIXES YOUR 404/NOT CHANGING BUG: Maps the live click interaction route listener!
 router.post("/:id/evaluate-match", evaluateMatchHandler);

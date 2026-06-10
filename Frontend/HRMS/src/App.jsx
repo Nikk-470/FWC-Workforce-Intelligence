@@ -17,6 +17,8 @@ import JobsPage from "./pages/recruiter/Jobs.jsx";
 // 👥 OTHER ROLE DIRECTORIES (Fixed to lowercase 'employee' and 'seniormanager')
 import EmployeeDashboard from "./pages/employee/Dashboard";
 import SeniorManagerDashboard from "./pages/seniormanager/Dashboard";
+// At the top of App.jsx
+import JobPipelineDetails from "./pages/recruiter/JobPipelineDetails"; // Ensure this path matches where you saved the file
 
 // 🛡️ Client-Side Session Guardian Guard
 const ProtectedRoute = ({ children }) => {
@@ -51,6 +53,7 @@ function App() {
       {/* 🟢 FIXED AND ALIGNED WITH YOUR SIDEBAR ARRAYS:
           This route loads your RecruiterDashboard file where the new candidate pipeline tables and grading loops sit! */}
       <Route path="/recruiter/pipeline" element={<ProtectedRoute><RecruiterDashboard /></ProtectedRoute>} />
+      <Route path="/recruiter/pipeline/:jobId" element={<JobPipelineDetails />} />
 
       {/* 👥 Worker-Facing Directory Hubs */}
       <Route path="/employee" element={<ProtectedRoute><EmployeeDashboard /></ProtectedRoute>} />

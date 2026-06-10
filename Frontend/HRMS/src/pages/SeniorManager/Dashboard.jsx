@@ -3,6 +3,7 @@ import { Users, CheckSquare, Calendar, Plus, UserPlus, Check, X, FolderPlus, Lay
 import axios from "axios";
 import SMSidebar from "./SMSidebar";
 import ManagerNotification from "./ManagerNotification";
+import { io } from "socket.io-client";
 
 export default function SeniorManagerDashboard() {
   const [employees, setEmployees] = useState([]);
@@ -570,6 +571,14 @@ const handleCreateTeam = async (e) => {
             </div>
           </div>
         )}
+        {/* Add this render layout check right next to your activeView blocks inside the dashboard wrapper main container body */}
+{activeView === "meetings" && (
+  <ManagerMeetingControlPanel 
+    managerUser={managerUser} 
+    teams={teams} 
+    departmentEmployees={departmentEmployees} 
+  />
+)}
 
         {/* VIEW MODULE B: CLUSTER MANAGEMENT DECK */}
         {activeView === "teamDeck" && (
@@ -1012,6 +1021,265 @@ function LeaveTriagePanel() {
           ))
         )}
       </div>
+    </div>
+  );
+}
+// backend/src/pages/seniormanager/Dashboard.jsx -> Replace old ManagerMeetingControlPanel at the bottom
+function ManagerMeetingControlPanel({ managerUser, teams, departmentEmployees }) {
+  const [meetingTitle, setMeetingTitle] = useState("");
+  const [meetingType, setMeetingType] = useState("Instant");
+  const [meetScope, setMeetScope] = useState("Team");
+  const [chosenTeam, setChosenTeam] = useState("");
+  const [chosenEmpId, setChosenEmpId] = useState("");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [activeRooms, setActiveRooms] = useState([]);
+  
+  // 🟢 WebRTC Streaming State Engine Hooks
+  const [activeCallRoomId, setActiveCallRoomId] = useState(null);
+  const [managerStream, setManagerStream] = useState(null);
+  const managerLocalVideoRef = React.useRef(null);
+  const employeeRemoteVideoRef = React.useRef(null);
+
+  const socketRef = React.useRef(null);
+  const peerConnectionRef = React.useRef(null);
+
+  const iceServersConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+  
+  const loadManagerRooms = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/meetings/manager/${managerUser._id}`);
+      if (res.data.success) setActiveRooms(res.data.meetings);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => { if (managerUser._id) loadManagerRooms(); }, [managerUser]);
+
+  // 🟢 Captures webcam & microphone tracks + Executes Signaling Loop
+  const startManagerMediaTracks = async (roomId) => {
+    try {
+      setActiveCallRoomId(roomId);
+
+      // 1. Fire up real-time bidirectional socket channels to backend server
+      socketRef.current = io("http://localhost:5000");
+      
+      // 2. Fetch local system media streams hardware access
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setManagerStream(stream);
+      setTimeout(() => {
+        if (managerLocalVideoRef.current) managerLocalVideoRef.current.srcObject = stream;
+      }, 300);
+
+      // 3. Initialize native Peer Connection configuration instances
+      peerConnectionRef.current = new RTCPeerConnection(iceServersConfig);
+
+      // Attach local hardware media device tracks straight into connection stream pipeline
+      stream.getTracks().forEach(track => peerConnectionRef.current.addTrack(track, stream));
+
+      // Capture and render incoming peer visual stream data tracks onto remote UI element
+      peerConnectionRef.current.ontrack = (event) => {
+        if (employeeRemoteVideoRef.current) {
+          employeeRemoteVideoRef.current.srcObject = event.streams[0];
+        }
+      };
+
+      // Broadcast generated network configurations straight through relay sockets channel
+      peerConnectionRef.current.onicecandidate = (event) => {
+        if (event.candidate) {
+          socketRef.current.emit("ice-candidate", { roomId, candidate: event.candidate });
+        }
+      };
+
+      // 4. Emit room handshake join request to signalling server
+      socketRef.current.emit("join-room", roomId);
+
+      // Trigger structural Offer description protocol proposal once Employee arrives
+      socketRef.current.on("user-connected", async () => {
+        const offer = await peerConnectionRef.current.createOffer();
+        await peerConnectionRef.current.setLocalDescription(offer);
+        socketRef.current.emit("video-offer", { roomId, sdp: offer });
+      });
+
+      // Synchronize Answer parameters returned by employee browser instance
+      socketRef.current.on("incoming-answer", async (sdp) => {
+        await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(sdp));
+      });
+
+      // Index and append incoming ICE network profiles directly to ongoing connection
+      socketRef.current.on("incoming-ice-candidate", async (candidate) => {
+        if (peerConnectionRef.current) {
+          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+      });
+
+    } catch (err) {
+      console.error(err);
+      alert("Hardware Block: Unable to access camera or microphone devices.");
+    }
+  };
+
+  // 🟢 Releases hardware drivers and safely teardowns socket nodes on call shutdown
+  const stopManagerMediaTracks = () => {
+    if (managerStream) {
+      managerStream.getTracks().forEach(track => track.stop());
+    }
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+    setManagerStream(null);
+    setActiveCallRoomId(null);
+  };
+
+  const dispatchMeetingRoom = async (e) => {
+    e.preventDefault();
+    if (!meetingTitle.trim()) return alert("Provide a conference session name.");
+    
+    try {
+      const payload = {
+        title: meetingTitle, type: meetingType, scopeType: meetScope,
+        targetTeam: meetScope === "Team" ? chosenTeam : "",
+        targetEmployeeId: meetScope === "Individual" ? chosenEmpId : "",
+        hostManagerId: managerUser._id, managerName: managerUser.name,
+        department: managerUser.department, scheduledTime: meetingType === "Scheduled" ? scheduleDate : null
+      };
+
+      const res = await axios.post("http://localhost:5000/api/meetings/create", payload, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("fwc_token")}` }
+      });
+      if (res.data.success) {
+        setMeetingTitle("");
+        loadManagerRooms();
+        
+        // Auto-launch the manager view frame if it's an Instant Live option
+        if (meetingType === "Instant") {
+          startManagerMediaTracks(res.data.meeting.roomId);
+        } else {
+          alert("Conference successfully scheduled. Notifications sent.");
+        }
+      }
+    } catch (err) { alert("Failed to establish interactive stream room context."); }
+  };
+
+  return (
+    <div className="space-y-6 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm text-left animate-in fade-in duration-150">
+      <div>
+        <h2 className="text-xl font-bold text-slate-800">Video & Audio Meeting Workspace</h2>
+        <p className="text-xs text-slate-400 mt-0.5">Launch native high-speed communication lines across your department branches.</p>
+      </div>
+
+      {!activeCallRoomId ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <form onSubmit={dispatchMeetingRoom} className="p-5 bg-slate-50 border border-slate-200/60 rounded-2xl space-y-4 h-fit">
+            <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">Configure Room Grid</p>
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Meeting Topic</label>
+              <input type="text" value={meetingTitle} onChange={e => setMeetingTitle(e.target.value)} placeholder="e.g., Daily Sprint Review" className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-indigo-500 mt-1" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Call Timing</label>
+                <select value={meetingType} onChange={e => setMeetingType(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs mt-1 outline-none">
+                  <option value="Instant">Instant Live</option>
+                  <option value="Scheduled">Schedule Later</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Invite Context</label>
+                <select value={meetScope} onChange={e => setMeetScope(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs mt-1 outline-none">
+                  <option value="Team">Whole Team</option>
+                  <option value="Individual">Single Member</option>
+                </select>
+              </div>
+            </div>
+
+            {meetingType === "Scheduled" && (
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Target Execution Timestamp</label>
+                <input type="datetime-local" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs mt-1 outline-none" />
+              </div>
+            )}
+
+            {meetScope === "Team" ? (
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Select Target Cluster Pod</label>
+                <select value={chosenTeam} onChange={e => setChosenTeam(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs mt-1 outline-none">
+                  <option value="">-- Select Target Pod --</option>
+                  {teams.filter(t => t !== "All Teams").map((t, idx) => <option key={idx} value={t}>{t}</option>)}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Target Roster Asset</label>
+                <select value={chosenEmpId} onChange={e => setChosenEmpId(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs mt-1 outline-none">
+                  <option value="">-- Choose Employee Target --</option>
+                  {departmentEmployees.map(emp => <option key={emp._id} value={emp.employee_id || emp._id}>{emp.name} [{emp.role}]</option>)}
+                </select>
+              </div>
+            )}
+
+            <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wider shadow-xs mt-2 transition-all">
+              Deploy Live Communication Link
+            </button>
+          </form>
+
+          <div className="lg:col-span-2 space-y-3 max-h-[420px] overflow-y-auto pr-1">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Live Active Rooms</p>
+            {activeRooms.length === 0 ? (
+              <div className="text-center py-12 border border-dashed rounded-2xl border-slate-200 text-slate-400 text-xs italic bg-slate-50">No meetings indexed under your node identifier currently.</div>
+            ) : (
+              activeRooms.map((room) => (
+                <div key={room._id} className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">{room.title}</h4>
+                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                      Target: <span className="text-indigo-600 font-bold">{room.scopeType === "Team" ? `Cluster [${room.targetTeam}]` : `Asset [${room.targetEmployeeName || "Roster Pool"}]`}</span> | Room ID: {room.roomId}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {room.status === "Active" ? (
+                      <button onClick={() => startManagerMediaTracks(room.roomId)} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg transition-all cursor-pointer">
+                        Enter Room
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border">{room.status}</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : (
+        /* 🟢 LIVE VIDEO CONFERENCE CALL ROOM CANVAS INTERFACE PANEL */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-900 border border-slate-800 p-6 rounded-3xl relative">
+          <div className="absolute top-4 left-4 bg-indigo-600 text-white text-[9px] font-mono tracking-widest uppercase font-bold px-2.5 py-0.5 rounded-full z-20 animate-pulse">
+            • Executive Conference Console Active
+          </div>
+
+          <div className="bg-slate-950 rounded-2xl overflow-hidden aspect-video relative border border-slate-800 shadow-inner flex items-center justify-center">
+            <video ref={managerLocalVideoRef} autoPlay playsInline muted className="w-full h-full object-cover transform -scale-x-100" />
+            <span className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-[10px] font-mono font-bold text-slate-300 px-2 py-0.5 rounded border border-slate-800">My Feed (Manager Camera)</span>
+          </div>
+
+          <div className="bg-slate-950 rounded-2xl overflow-hidden aspect-video relative border border-slate-800 shadow-inner flex items-center justify-center">
+            <video ref={employeeRemoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            <div className="text-center space-y-1 p-4 absolute z-10 text-slate-500">
+              <p className="text-xs font-bold tracking-wide">Awaiting Employee Connection Stream...</p>
+              <p className="text-[10px] font-mono opacity-60">WebRTC Signal Loop Handshake Pending</p>
+            </div>
+            <span className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-xs text-[10px] font-mono font-bold text-slate-300 px-2 py-0.5 rounded border border-slate-800 z-20">Employee Feed (Remote Stream)</span>
+          </div>
+
+          <div className="md:col-span-2 flex justify-center border-t border-slate-800/80 pt-4 mt-2">
+            <button onClick={stopManagerMediaTracks} className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-6 py-2.5 rounded-xl uppercase tracking-wider transition-colors shadow-lg">
+              Close Meeting Room
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
