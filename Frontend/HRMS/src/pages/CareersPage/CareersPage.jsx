@@ -28,7 +28,9 @@ const CareersPage = () => {
     const fetchOpenJobs = async () => {
       try {
         // 🟢 Hits Endpoint 1 inside recruitmentRoutes mounted at /api base path
-        const response = await axios.get('Frontend/HRMS/src/**/api/jobs');
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}/api/jobs`
+        );
         setJobs(response.data || []);
       } catch (err) {
         console.error('Error loading job postings:', err);
@@ -57,7 +59,7 @@ const CareersPage = () => {
       payload.append('resume', resumeFile);
 
       // 🟢 REDIRECTED PATH: Sends data to your updated recruitmentRoutes validation schema entry
-      await axios.post('Frontend/HRMS/src/**/api/candidates/apply-public', payload, {
+      await axios.post('${import.meta.env.VITE_API_BASE_URL}/api/candidates/apply-public', payload, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
@@ -257,7 +259,7 @@ const CareersPage = () => {
                 const deadlineDate = job.openingTo;
 
                 // 🟢 Dynamically appends host tracking to local disk document strings
-                const pdfAssetUrl = job.jdPdfUrl ? `Frontend/HRMS/src/**${job.jdPdfUrl}` : null;
+                const pdfAssetUrl = job.jdPdfUrl ? `${import.meta.env.VITE_API_BASE_URL}${job.jdPdfUrl}` : null;
 
                 return (
                   <div 

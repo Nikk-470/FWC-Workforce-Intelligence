@@ -44,7 +44,7 @@ const EmployeesPage = () => {
     setBackendError("");
     try {
       const token = localStorage.getItem("fwc_token");
-      const response = await axios.get("Frontend/HRMS/src/**/api/employees", {
+      const response = await axios.get("${import.meta.env.VITE_API_BASE_URL}/api/employees", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (Array.isArray(response.data)) {
@@ -158,7 +158,7 @@ const EmployeesPage = () => {
       const token = localStorage.getItem("fwc_token");
       const targetId = employeeTargetForDeletion._id || employeeTargetForDeletion.employee_id;
       
-      await axios.delete(`Frontend/HRMS/src/**/api/employees/${targetId}`, {
+      await axios.delete(`${import.meta.env.VITE_API_BASE_URL}/api/employees/${targetId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEmployeeTargetForDeletion(null);

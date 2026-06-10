@@ -15,8 +15,8 @@ export default function JobApplicants() {
   const fetchDashboardTelemetry = async () => {
     try {
       const [jobsRes, candidatesRes] = await Promise.all([
-        axios.get("Frontend/HRMS/src/**/api/jobs"),
-        axios.get("Frontend/HRMS/src/**/api/candidates")
+        axios.get("${import.meta.env.VITE_API_BASE_URL}/api/jobs"),
+        axios.get("${import.meta.env.VITE_API_BASE_URL}/api/candidates")
       ]);
       setJobs(jobsRes.data || []);
       setCandidates(candidatesRes.data || []);
@@ -34,7 +34,7 @@ export default function JobApplicants() {
   const handleAiProfilingMatch = async (candidateId) => {
     setEvaluatingId(candidateId);
     try {
-      const response = await axios.post(`Frontend/HRMS/src/**/api/candidates/${candidateId}/evaluate-match`);
+      const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/candidates/${candidateId}/evaluate-match`);
       const { score, status } = response.data;
       alert(`Evaluation complete! Grade: ${Number(score).toFixed(2)}/10. Status updated to: ${status}`);
       fetchDashboardTelemetry();
@@ -126,7 +126,7 @@ export default function JobApplicants() {
                       <td className="py-4 px-3 font-mono font-medium text-slate-500">{candidate.email}</td>
                       <td className="py-4 px-3 text-center">
                         <a
-                          href={`Frontend/HRMS/src/**/${candidate.resumeUrl}`}
+                          href={`${import.meta.env.VITE_API_BASE_URL}/${candidate.resumeUrl}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-indigo-500 hover:text-indigo-600 font-black tracking-tight underline inline-flex items-center gap-1"
