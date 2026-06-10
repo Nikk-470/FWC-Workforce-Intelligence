@@ -226,7 +226,7 @@ export default function LandingPage() {
         </div>
 
         {/* 🤖 Column 2: New Diagonal Floating FWCAI Robot & Swipeable Component */}
-        <div className="hidden xl:flex w-[22%] flex-col justify-center items-start relative px-2 -ml-8">
+        <div className="hidden xl:flex w-[22%] flex-col justify-center items-start relative px-2 -ml-20">
           <div className="w-full aspect-[4/5] bg-white rounded-3xl p-6 border border-slate-200/90 flex flex-col justify-between shadow-lg animate-diagonal-float relative overflow-hidden group">
             
             {/* Top Frame: Purple Robot Header Section */}
@@ -274,10 +274,10 @@ export default function LandingPage() {
             <div className="w-full pt-4 border-t border-slate-100 flex items-center justify-between">
               <button 
                 onClick={prevSlide} 
-                className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
+                className="p-2 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-300 transition-colors shadow-sm"
                 aria-label="Previous card view"
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={22} strokeWidth={3} />
               </button>
               
               {/* Pagination Indicators track dots */}
@@ -295,10 +295,10 @@ export default function LandingPage() {
 
               <button 
                 onClick={nextSlide} 
-                className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors"
+                className="p-2 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 border border-indigo-300 transition-colors shadow-sm"
                 aria-label="Next card view"
               >
-                <ChevronRight size={16} />
+                <ChevronRight size={22} strokeWidth={3} />
               </button>
             </div>
 
