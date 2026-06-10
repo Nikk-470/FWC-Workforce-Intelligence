@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./pages/Landing/LandingPage";
 import CareersPage from "./pages/CareersPage/CareersPage";
 import InterviewsPage from "./pages/interview/Interviews.jsx";
-import AIInterviewSandboxApp from "./pages/interview/AIInterviewSandboxApp.jsx";
+//import AIInterviewSandboxApp from "./pages/interview/AIInterviewSandboxApp.jsx";
 
 // 👑 ADMIN DIRECTORY IMPORTS (Fixed to lowercase 'admin')
 import AdminDashboard from "./pages/admin/Dashboard"; 
