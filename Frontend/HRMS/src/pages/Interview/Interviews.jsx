@@ -17,7 +17,7 @@ export default function InterviewsPage() {
 
   const fetchScheduledInterviews = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/scheduled");
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/scheduled`);
       setInterviews(res.data || []);
     } catch (error) {
       console.error("Error loading interview calendar panel:", error);

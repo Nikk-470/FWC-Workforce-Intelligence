@@ -93,7 +93,7 @@ const fileInputRef = useRef(null);
 
   const fetchCandidates = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/candidates");
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/candidates`);
       setCandidates(res.data || []);
     } catch (error) {
       console.error("Error retrieving candidate tracking state:", error);
@@ -102,7 +102,7 @@ const fileInputRef = useRef(null);
 
   const fetchJobsCatalog = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/jobs");
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/jobs`);
       setJobs(res.data || []);
     } catch (error) {
       console.error("Error loading position data matrix:", error);
@@ -111,7 +111,7 @@ const fileInputRef = useRef(null);
 
   const fetchAnalytics = async () => {
     try {
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/candidates/analytics");
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/candidates/analytics`);
       setAnalytics(res.data);
     } catch (error) {
       console.error("Error aggregating performance logs:", error);
@@ -152,7 +152,7 @@ const fileInputRef = useRef(null);
         }
       };
 
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/schedule", payload);
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/schedule`, payload);
       alert("Standard human verification pipeline indexed successfully.");
       
       // Clean states out
@@ -187,7 +187,7 @@ const fileInputRef = useRef(null);
     });
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/candidates/upload-direct", formDataPayload, {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/candidates/upload-direct`, formDataPayload, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       

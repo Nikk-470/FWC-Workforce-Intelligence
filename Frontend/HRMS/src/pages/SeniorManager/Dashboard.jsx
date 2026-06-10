@@ -171,7 +171,7 @@ const handleCreateTeam = async (e) => {
   try {
     const token = localStorage.getItem("fwc_token");
     const response = await axios.post(
-      `${import.meta.env.VITE_API_BASE_URL}/api/teams", 
+      `${import.meta.env.VITE_API_BASE_URL}/api/teams`, 
       {
         name: trimmedName,
         managerId: managerUser._id
@@ -276,7 +276,7 @@ const handleCreateTeam = async (e) => {
 
       if (taskScope === "Team") {
         const response = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/api/tasks/assign",
+          `${import.meta.env.VITE_API_BASE_URL}/api/tasks/assign`,
           {
             title: trimmedTitle,
             description: "Deploys automatically via sprint workflow manager panel.",
@@ -290,7 +290,7 @@ const handleCreateTeam = async (e) => {
         );
 
         if (response.data && response.data.success) {
-          alert(`Task pipeline successfully deployed to all members in ${currentTeamScope}!`);
+          alert("Task pipeline successfully deployed to all members in ${currentTeamScope}!");
           setNewTaskTitle("");
         }
       } else {
@@ -300,7 +300,7 @@ const handleCreateTeam = async (e) => {
         }
 
         const response = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/api/tasks/assign",
+          `${import.meta.env.VITE_API_BASE_URL}/api/tasks/assign`,
           {
             title: trimmedTitle,
             description: "Dedicated single workflow item assignment.",
@@ -918,7 +918,7 @@ function LeaveTriagePanel() {
     try {
       setLoading(true);
       const token = localStorage.getItem("fwc_token");
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/leaves/admin/queue", {
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/leaves/admin/queue`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -1063,7 +1063,7 @@ function ManagerMeetingControlPanel({ managerUser, teams, departmentEmployees })
       setActiveCallRoomId(roomId);
 
       // 1. Fire up real-time bidirectional socket channels to backend server
-      socketRef.current = io(`${import.meta.env.VITE_API_BASE_URL}");
+      socketRef.current = io(`${import.meta.env.VITE_API_BASE_URL}`);
       
       // 2. Fetch local system media streams hardware access
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -1149,7 +1149,7 @@ function ManagerMeetingControlPanel({ managerUser, teams, departmentEmployees })
         department: managerUser.department, scheduledTime: meetingType === "Scheduled" ? scheduleDate : null
       };
 
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/create", payload, {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/meetings/create`, payload, {
         headers: { Authorization: `Bearer ${localStorage.getItem("fwc_token")}` }
       });
       if (res.data.success) {

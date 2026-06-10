@@ -18,7 +18,7 @@ const PayrollLedger = ({ user, isDarkMode }) => {
         const token = localStorage.getItem("fwc_token");
         
         try {
-          const configRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/payroll/admin/directory", {
+          const configRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/payroll/admin/directory`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (configRes.data.success) {

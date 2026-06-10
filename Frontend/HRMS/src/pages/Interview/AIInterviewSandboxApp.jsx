@@ -416,7 +416,7 @@ const startVoiceConnection = async () => {
   // Query backend to fetch a custom starting question from Ava
   setSttStatus("OFFLINE (AI Agent speaking)");
   try {
-    const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/chat", {
+    const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/chat`, {
       chatHistory: [], 
       candidateName: candidateProfile?.name || "Candidate"
     });
@@ -461,7 +461,7 @@ const commitCandidateResponse = async (responseText) => {
 
   try {
     // 2. Stream conversation logs directly to the local Groq proxy server execution channel
-    const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/chat", {
+    const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/chat`, {
       chatHistory: updatedLogWithUser,
       candidateName: candidateProfile?.name || "Candidate"
     });
@@ -526,7 +526,7 @@ const commitCandidateResponse = async (responseText) => {
         }
       };
 
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/evaluate", payload);
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/evaluate`, payload);
       setTimeout(() => setStage("completed"), 2000);
     } catch (err) {
       console.error("Session final processing failure:", err);

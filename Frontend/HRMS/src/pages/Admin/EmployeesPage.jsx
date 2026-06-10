@@ -44,7 +44,7 @@ const EmployeesPage = () => {
     setBackendError("");
     try {
       const token = localStorage.getItem("fwc_token");
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/employees", {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/employees`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (Array.isArray(response.data)) {

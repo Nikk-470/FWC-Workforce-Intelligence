@@ -15,7 +15,7 @@ export default function AdminPaymentPanel() {
     try {
       setLoading(true);
       const token = localStorage.getItem("fwc_token");
-      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/payroll/admin/directory", {
+      const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/payroll/admin/directory`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) setDirectory(res.data.data || []);
@@ -50,7 +50,7 @@ export default function AdminPaymentPanel() {
         ...inputs
       };
 
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/payroll/admin/config/save", payload, {
+      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/payroll/admin/config/save`, payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
