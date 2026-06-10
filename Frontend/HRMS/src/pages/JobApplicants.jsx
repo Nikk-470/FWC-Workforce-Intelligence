@@ -15,8 +15,8 @@ export default function JobApplicants() {
   const fetchDashboardTelemetry = async () => {
     try {
       const [jobsRes, candidatesRes] = await Promise.all([
-        axios.get("${import.meta.env.VITE_API_BASE_URL}/api/jobs"),
-        axios.get("${import.meta.env.VITE_API_BASE_URL}/api/candidates")
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/jobs"),
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/candidates")
       ]);
       setJobs(jobsRes.data || []);
       setCandidates(candidatesRes.data || []);

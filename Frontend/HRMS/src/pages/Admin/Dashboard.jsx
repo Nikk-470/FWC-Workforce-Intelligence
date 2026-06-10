@@ -54,14 +54,14 @@ export default function Dashboard() {
         const headers = { Authorization: `Bearer ${token}` };
 
         // 📡 1. Query Real-Time Employee Database Matrix
-        const empRes = await axios.get("${import.meta.env.VITE_API_BASE_URL}/api/employees", { headers });
+        const empRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/employees", { headers });
         if (Array.isArray(empRes.data)) {
           setEmployeeCount(empRes.data.length.toString());
           setRecentEmployees(empRes.data.slice(-3).reverse()); // Capture last 3 additions
         }
 
         // 📡 2. Query Financial Allocations Ledger 
-        const ledgerRes = await axios.get("${import.meta.env.VITE_API_BASE_URL}/api/payroll/admin/directory", { headers });
+        const ledgerRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/payroll/admin/directory", { headers });
         if (ledgerRes.data.success && Array.isArray(ledgerRes.data.data)) {
           const total = ledgerRes.data.data.reduce((acc, curr) => acc + Number(curr.salaryConfig?.monthlyBase || 0), 0);
           const unconfigured = ledgerRes.data.data.filter(curr => !curr.salaryConfig?.ctc).length;

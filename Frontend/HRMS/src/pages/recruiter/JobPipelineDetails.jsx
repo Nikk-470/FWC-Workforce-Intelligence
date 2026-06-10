@@ -30,8 +30,8 @@ export default function JobPipelineDetails() {
     try {
       setIsLoading(true);
       const [jobsRes, candidatesRes] = await Promise.all([
-        axios.get("${import.meta.env.VITE_API_BASE_URL}/api/jobs"),
-        axios.get("${import.meta.env.VITE_API_BASE_URL}/api/candidates")
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/jobs"),
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/candidates")
       ]);
 
       const currentJob = jobsRes.data?.find(j => j._id === jobId);
@@ -90,7 +90,7 @@ export default function JobPipelineDetails() {
         }
       };
 
-      await axios.post("${import.meta.env.VITE_API_BASE_URL}/api/interviews/schedule", payload);
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/interviews/schedule", payload);
       alert("Standard human verification pipeline indexed successfully.");
       
       setSchedulingCandidate(null);

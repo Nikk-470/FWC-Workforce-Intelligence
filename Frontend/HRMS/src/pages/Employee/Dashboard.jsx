@@ -213,7 +213,7 @@ const EmployeeDashboard = () => {
     try {
       const token = localStorage.getItem("fwc_token");
       const response = await axios.put(
-        "${import.meta.env.VITE_API_BASE_URL}/api/auth/profile/update", 
+        `${import.meta.env.VITE_API_BASE_URL}/api/auth/profile/update", 
         {
           name: formData.name,
           email: user.email,
@@ -657,7 +657,7 @@ function EmployeeMeetingDesk({ user, isDarkMode }) {
       setActiveCallId(roomId);
 
       // 1. Instantly connect to backend WebSocket gateway
-      socketRef.current = io("${import.meta.env.VITE_API_BASE_URL}");
+      socketRef.current = io(`${import.meta.env.VITE_API_BASE_URL}");
 
       // 2. Spin up native hardware trackers
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
