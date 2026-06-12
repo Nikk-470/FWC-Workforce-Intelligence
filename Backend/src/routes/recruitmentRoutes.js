@@ -50,13 +50,14 @@ const client = new OpenAI({
 });
 
 const emailTransporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.SYSTEM_SMTP_EMAIL,
     pass: process.env.SYSTEM_SMTP_PASSWORD
   }
 });
-
 /* ==========================================================================
    ENDPOINT 1: PUBLISH & MANAGE CAREER ROSTER PACKETS
    ========================================================================== */
@@ -346,8 +347,9 @@ router.post('/interviews/schedule', async (req, res) => {
 
     await newInterview.save();
 
-    const evaluationUrl = executionMode === 'ai' 
-      ? `http://localhost:3000/interview/session/${newInterview._id}` 
+    const evaluationUrl =
+  executionMode === 'ai'
+    ? `http://localhost:3000/interview/session/${newInterview._id}`
       : (interviewDetails?.link || req.body.link || "https://meet.google.com");
 
     applicantProfile.interviewDetails.link = evaluationUrl;
@@ -373,14 +375,27 @@ router.post('/interviews/schedule', async (req, res) => {
       `
     };
 
-    await emailTransporter.sendMail(messagingPayload);
-    return res.status(200).json({ success: true, candidate: applicantProfile, interview: newInterview });
-
-  } catch (error) {
-    console.error("Communication channel engine breakdown:", error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-});
+    try {
+      await emailTransporter.sendMail(messagingPayload);
+      console.log("✅ Interview email sent successfully");
+    } catch (mailError) {
+      console.error("❌ Email dispatch failed:", mailError);
+    }
+    
+    return res.status(200).json({
+      success: true,
+      candidate: applicantProfile,
+      interview: newInterview
+    });
+    
+    } catch (error) {
+      console.error("Communication channel engine breakdown:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+    });
 
 router.get('/interviews/scheduled', async (req, res) => {
   try {
