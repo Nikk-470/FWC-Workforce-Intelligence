@@ -5,6 +5,7 @@ const Candidate = require("../models/Candidate");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const cloudinary = require("cloudinary").v2;
 
 // 🔒 ISOLATION LAYER: Define a dedicated subfolder just for Job Descriptions inside your src layout
 const jobUploadDir = path.join(__dirname, "../upload/jds");
@@ -69,7 +70,9 @@ router.post("/", upload.single("jdPdf"), async (req, res) => {
     }
 
     // Capture the static server asset endpoint string if a document payload is attached
-    const jdPdfUrl = req.file ? `/upload/jds/${req.file.filename}` : null;
+    let jdPdfUrl = null;
+
+
 
     const newJob = new Job({
       title,

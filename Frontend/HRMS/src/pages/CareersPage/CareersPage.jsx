@@ -59,9 +59,13 @@ const CareersPage = () => {
       payload.append('resume', resumeFile);
 
       // 🟢 REDIRECTED PATH: Sends data to your updated recruitmentRoutes validation schema entry
-      await axios.post('${import.meta.env.VITE_API_BASE_URL}/api/candidates/apply-public', payload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL}/api/candidates/apply-public`,
+        payload,
+        {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        }
+      );
 
       setIsSuccess(true);
       setFormData({ name: '', email: '', phone: '' });
