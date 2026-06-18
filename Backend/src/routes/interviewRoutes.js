@@ -201,6 +201,20 @@ router.post("/schedule", async (req, res) => {
     //   subject: existingInterview ? "UPDATED: Interview Schedule Confirmation" : "Interview Schedule Confirmation",
     //   html: htmlEmailTemplate,
     // });
+    try {
+      await transporter.sendMail({
+        from: `"FWC Workforce Intelligence" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: existingInterview
+          ? "UPDATED: Interview Schedule Confirmation"
+          : "Interview Schedule Confirmation",
+        html: htmlEmailTemplate,
+      });
+    
+      console.log("✅ Email sent successfully");
+    } catch (mailError) {
+      console.error("❌ Email failed:", mailError);
+    }
 
     return res.status(200).json({ 
       success: true, 
