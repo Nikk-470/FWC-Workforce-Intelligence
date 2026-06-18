@@ -15,12 +15,14 @@ const openai = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1"
 });
 
+
+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
+    pass: process.env.EMAIL_PASS
+  }
 });
 
 // =========================================================
