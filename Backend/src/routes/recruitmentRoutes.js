@@ -51,11 +51,21 @@ const client = new OpenAI({
 
 const emailTransporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
   auth: {
-    user: process.env.SYSTEM_SMTP_EMAIL,
-    pass: process.env.SYSTEM_SMTP_PASSWORD
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
+
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
+
+emailTransporter.verify((error, success) => {
+  if (error) {
+    console.error("SMTP VERIFY FAILED:", error);
+  } else {
+    console.log("SMTP SERVER READY");
   }
 });
 /* ==========================================================================
