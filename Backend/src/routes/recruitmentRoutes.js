@@ -61,13 +61,13 @@ const emailTransporter = nodemailer.createTransport({
 
 console.log("EMAIL_USER:", process.env.EMAIL_USER);
 
-emailTransporter.verify((error, success) => {
-  if (error) {
-    console.error("SMTP VERIFY FAILED:", error);
-  } else {
-    console.log("SMTP SERVER READY");
-  }
-});
+// emailTransporter.verify((error, success) => {
+//   if (error) {
+//     console.error("SMTP VERIFY FAILED:", error);
+//   } else {
+//     console.log("SMTP SERVER READY");
+//   }
+// });
 /* ==========================================================================
    ENDPOINT 1: PUBLISH & MANAGE CAREER ROSTER PACKETS
    ========================================================================== */
