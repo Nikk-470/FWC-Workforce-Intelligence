@@ -193,12 +193,12 @@ router.post("/schedule", async (req, res) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"FWC Workforce Intelligence" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: existingInterview ? "UPDATED: Interview Schedule Confirmation" : "Interview Schedule Confirmation",
-      html: htmlEmailTemplate,
-    });
+    // await transporter.sendMail({
+    //   from: `"FWC Workforce Intelligence" <${process.env.EMAIL_USER}>`,
+    //   to: email,
+    //   subject: existingInterview ? "UPDATED: Interview Schedule Confirmation" : "Interview Schedule Confirmation",
+    //   html: htmlEmailTemplate,
+    // });
 
     return res.status(200).json({ 
       success: true, 
